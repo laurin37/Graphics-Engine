@@ -94,7 +94,7 @@ const char* pixelShaderSource = R"(
     }
 )";
 
-Graphics::Graphics() : m_rotation(0.0f) {}
+Graphics::Graphics() {}
 
 void Graphics::Initialize(HWND hwnd, int width, int height)
 {
@@ -147,6 +147,11 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
     InitPipeline();
 
+    // Initialize camera
+    m_camera = std::make_unique<Camera>();
+    m_camera->SetPosition(0.0f, 0.0f, -2.5f);
+
+    // Setup projection matrix
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
         DirectX::XM_PIDIV4, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f
     );
@@ -171,7 +176,8 @@ void Graphics::InitPipeline()
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
 
-    Vertex vertices[] = {
+    // Create cube mesh data
+    std::vector<Vertex> vertices = {
         { {-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }, { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
         { { 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  { { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  { {-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  { {-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },
         { {-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f} },  { {-0.5f, 0.5f,  0.5f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f} },  { { 0.5f, 0.5f,  0.5f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f} },  { { 0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f} },
@@ -179,21 +185,10 @@ void Graphics::InitPipeline()
         { {-0.5f, -0.5f,  0.5f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} }, { {-0.5f,  0.5f,  0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }, { {-0.5f,  0.5f, -0.5f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f} }, { {-0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f} },
         { { 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} }
     };
-    D3D11_BUFFER_DESC bd = {};
-    bd.Usage = D3D11_USAGE_DEFAULT;
-    bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
-    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA sd = {vertices, 0, 0};
-    ThrowIfFailed(m_device->CreateBuffer(&bd, &sd, &m_vertexBuffer));
+    std::vector<unsigned int> indices = { 0,1,2, 0,2,3, 4,5,6, 4,6,7, 8,9,10, 8,10,11, 12,13,14, 12,14,15, 16,17,18, 16,18,19, 20,21,22, 20,22,23 };
+    m_cubeMesh = std::make_unique<Mesh>(m_device.Get(), vertices, indices);
 
-    unsigned int indices[] = { 0,1,2, 0,2,3, 4,5,6, 4,6,7, 8,9,10, 8,10,11, 12,13,14, 12,14,15, 16,17,18, 16,18,19, 20,21,22, 20,22,23 };
-    D3D11_BUFFER_DESC ibd = {};
-    ibd.Usage = D3D11_USAGE_DEFAULT;
-    ibd.ByteWidth = sizeof(unsigned int) * ARRAYSIZE(indices);
-    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    D3D11_SUBRESOURCE_DATA isd = {indices, 0, 0};
-    ThrowIfFailed(m_device->CreateBuffer(&ibd, &isd, &m_indexBuffer));
-
+    // Create constant buffers
     D3D11_BUFFER_DESC cbd = {};
     cbd.Usage = D3D11_USAGE_DEFAULT;
     cbd.ByteWidth = sizeof(CB_VS_vertexshader);
@@ -203,6 +198,7 @@ void Graphics::InitPipeline()
     cbd.ByteWidth = sizeof(CB_PS_light);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psConstantBuffer));
 
+    // Create texture and sampler
     const int texWidth = 64, texHeight = 64;
     std::vector<uint32_t> texData(texWidth * texHeight);
     for (int y = 0; y < texHeight; ++y) for (int x = 0; x < texWidth; ++x) texData[y * texWidth + x] = ((x / 8 % 2) == (y / 8 % 2)) ? 0xFFFFFFFF : 0xFF000000;
@@ -238,44 +234,49 @@ void Graphics::RenderFrame()
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    m_rotation += 0.002f;
-    if (m_rotation > 6.28f) m_rotation = 0.0f;
+    // Animate camera and world
+    static float time = 0.0f;
+    time += 0.002f;
+    if (time > 6.28f) time = 0.0f;
+    m_camera->SetRotation(0.0f, time, 0.0f);
+    m_worldMatrix = DirectX::XMMatrixRotationY(-time / 2.0f);
 
-    DirectX::XMVECTOR cameraPos = DirectX::XMVectorSet(0.0f, 0.0f, -2.5f, 0.0f);
-    m_worldMatrix = DirectX::XMMatrixRotationY(m_rotation) * DirectX::XMMatrixRotationX(m_rotation / 2.0f);
-    m_viewMatrix = DirectX::XMMatrixLookAtLH(cameraPos, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+    // Get view matrix from camera
+    DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
 
+    // Update VS constant buffer
     CB_VS_vertexshader vs_cb;
     DirectX::XMStoreFloat4x4(&vs_cb.worldMatrix, DirectX::XMMatrixTranspose(m_worldMatrix));
-    DirectX::XMStoreFloat4x4(&vs_cb.viewMatrix, DirectX::XMMatrixTranspose(m_viewMatrix));
+    DirectX::XMStoreFloat4x4(&vs_cb.viewMatrix, DirectX::XMMatrixTranspose(viewMatrix));
     DirectX::XMStoreFloat4x4(&vs_cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
     m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
 
+    // Update PS constant buffer
     CB_PS_light ps_cb;
     DirectX::XMStoreFloat4(&ps_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
     ps_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-    DirectX::XMStoreFloat4(&ps_cb.cameraPos, cameraPos);
+    DirectX::XMStoreFloat4(&ps_cb.cameraPos, m_camera->GetPosition());
     ps_cb.specularIntensity = 1.0f;
     ps_cb.specularPower = 32.0f;
     m_deviceContext->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &ps_cb, 0, 0);
 
+    // Bind constant buffers
     m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
     m_deviceContext->PSSetConstantBuffers(0, 1, m_psConstantBuffer.GetAddressOf());
 
+    // Bind textures and samplers
     m_deviceContext->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     
+    // Set common pipeline state
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-    
-    UINT stride = sizeof(Vertex), offset = 0;
-    m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-    m_deviceContext->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
-    
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    m_deviceContext->DrawIndexed(36, 0, 0);
+    // Draw the mesh
+    m_cubeMesh->Draw(m_deviceContext.Get());
 
+    // Present the frame
     ThrowIfFailed(m_swapChain->Present(1, 0));
 }

@@ -5,6 +5,9 @@
 #include <stdexcept>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
+#include <memory> // For std::unique_ptr
+#include "Mesh.h"
+#include "Camera.h"
 
 // Helper for exception-based error handling
 inline void ThrowIfFailed(HRESULT hr)
@@ -14,14 +17,6 @@ inline void ThrowIfFailed(HRESULT hr)
         throw std::exception("DirectX Error");
     }
 }
-
-// Vertex structure
-struct Vertex
-{
-    DirectX::XMFLOAT3 pos;
-    DirectX::XMFLOAT2 uv;
-    DirectX::XMFLOAT3 normal;
-};
 
 // Constant buffer for vertex shader
 struct CB_VS_vertexshader
@@ -73,8 +68,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_vsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_psConstantBuffer;
 
@@ -82,11 +75,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_textureView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
     
+    // Scene objects
+    std::unique_ptr<Mesh> m_cubeMesh;
+    std::unique_ptr<Camera> m_camera;
+
     // Matrices
     DirectX::XMMATRIX m_worldMatrix;
-    DirectX::XMMATRIX m_viewMatrix;
     DirectX::XMMATRIX m_projectionMatrix;
-
-    // Animation
-    float m_rotation;
 };
