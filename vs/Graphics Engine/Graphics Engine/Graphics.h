@@ -19,7 +19,7 @@ inline void ThrowIfFailed(HRESULT hr)
 struct Vertex
 {
     DirectX::XMFLOAT3 pos;
-    DirectX::XMFLOAT4 color;
+    DirectX::XMFLOAT2 uv;
 };
 
 // Constant buffer for vertex shader
@@ -65,6 +65,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_indexBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer;
 
+    // Texturing objects
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_textureView;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
+    
     // Matrices
     DirectX::XMMATRIX m_worldMatrix;
     DirectX::XMMATRIX m_viewMatrix;
