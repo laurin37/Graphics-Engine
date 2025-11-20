@@ -136,6 +136,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="ModelLoader.cpp" />
+    <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +149,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="ModelLoader.h" />
+    <ClInclude Include="TextureLoader.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
   <ItemGroup>
@@ -184,6 +186,16 @@
     <None Include="Assets\Models\basic\torus.obj">
       <FileType>Document</FileType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg" />
+    <Image Include="Assets\Textures\blue_metal_plate_disp_4k.png" />
+    <Image Include="Assets\Textures\pine_bark_diff_4k.jpg" />
+    <Image Include="Assets\Textures\pine_bark_disp_4k.png" />
+    <Image Include="Assets\Textures\snow_02_diff_4k.jpg" />
+    <Image Include="Assets\Textures\snow_02_disp_4k.png" />
+    <Image Include="Assets\Textures\snow_02_rough_4k.jpg" />
+    <Image Include="Assets\Textures\snow_02_translucent_4k.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

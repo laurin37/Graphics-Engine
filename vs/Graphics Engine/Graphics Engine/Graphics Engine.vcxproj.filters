@@ -45,6 +45,9 @@
     <ClCompile Include="ModelLoader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="TextureLoader.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -77,6 +80,9 @@
     <ClInclude Include="ModelLoader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="TextureLoader.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Models\interieur.obj" />
@@ -92,5 +98,31 @@
     <None Include="Assets\Models\basic\sphere.obj" />
     <None Include="Assets\Models\basic\cylinder.obj" />
     <None Include="Assets\Models\basic\cone.obj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\blue_metal_plate_disp_4k.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\pine_bark_diff_4k.jpg">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\pine_bark_disp_4k.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\snow_02_diff_4k.jpg">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\snow_02_disp_4k.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\snow_02_rough_4k.jpg">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\snow_02_translucent_4k.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
   </ItemGroup>
 </Project>

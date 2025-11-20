@@ -45,6 +45,7 @@ public:
     void RenderFrame(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects);
     
     ID3D11Device* GetDevice() const;
+    ID3D11DeviceContext* GetContext() const;
     Mesh* GetMeshAsset() const;
 
 private:

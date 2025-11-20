@@ -219,10 +219,10 @@ void Graphics::InitPipeline()
     cbd.ByteWidth = sizeof(DirectX::XMMATRIX);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_cbShadowMatrix));
 
-    const int texWidth = 64, texHeight = 64;
-    std::vector<uint32_t> texData(texWidth * texHeight);
-    for (int y = 0; y < texHeight; ++y) for (int x = 0; x < texWidth; ++x) texData[y * texWidth + x] = ((x / 8 % 2) == (y / 8 % 2)) ? 0xFFFFFFFF : 0xFF000000;
-    
+    // Create a 1x1 white texture to act as a default for non-textured materials
+    const int texWidth = 1, texHeight = 1;
+    std::vector<uint32_t> texData(texWidth * texHeight, 0xFFFFFFFF); // 0xFFFFFFFF = white
+
     Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
     D3D11_TEXTURE2D_DESC texDesc = {};
     texDesc.Width = texWidth;
@@ -238,13 +238,14 @@ void Graphics::InitPipeline()
     ThrowIfFailed(m_device->CreateShaderResourceView(texture.Get(), nullptr, &m_textureView));
 
     D3D11_SAMPLER_DESC sampDesc = {};
-    sampDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+    sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;
     sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
     sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
     sampDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     sampDesc.MinLOD = 0;
     sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    sampDesc.MaxAnisotropy = D3D11_MAX_MAXANISOTROPY;
     ThrowIfFailed(m_device->CreateSamplerState(&sampDesc, &m_samplerState));
 
     D3D11_TEXTURE2D_DESC shadowMapDesc = {};
@@ -293,6 +294,11 @@ void Graphics::InitPipeline()
 ID3D11Device* Graphics::GetDevice() const
 {
     return m_device.Get();
+}
+
+ID3D11DeviceContext* Graphics::GetContext() const
+{
+    return m_deviceContext.Get();
 }
 
 Mesh* Graphics::GetMeshAsset() const
