@@ -2,11 +2,11 @@ Project Context: GeminiDX Engine
 
 Project Overview
 
-This project is a custom 3D Graphics Engine built from scratch using C++ and DirectX (Direct3D). The development environment is Visual Studio 2022 on Windows 11.
+This project is a custom 3D Graphics Engine built from scratch using C++ and DirectX (Direct3D). The development environment is Visual Studio 2026 on Windows 11.
 
 Tech Stack & Constraints
 
-Language: C++20 (Standard ISO C++).
+Language: C++23 (Standard ISO C++).
 
 Graphics API: Direct3D 11 (Feature Level 11_0) initially, with architecture designed to support D3D12 later.
 
@@ -16,7 +16,7 @@ Math Library: DirectXMath (<DirectXMath.h>).
 
 Shader Language: HLSL (Shader Model 5.0).
 
-IDE/Compiler: Visual Studio 2022 (MSVC).
+IDE/Compiler: Visual Studio 2026 (MSVC).
 
 Architectural Guidelines
 
