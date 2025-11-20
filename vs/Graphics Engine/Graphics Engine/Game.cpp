@@ -68,15 +68,11 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
         auto texMetal = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/blue_metal_plate_diff_4k.jpg");
         auto normMetal = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/blue_metal_plate_disp_4k.png");
 
-        // --- Font Loading Logic ---
-        try {
-            auto fontTex = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/font.png");
-            m_font.Initialize(fontTex);
-        }
-        catch (...) {
-            // FALLBACK: If font.png isn't found, use wood texture so we see SOMETHING.
-            m_font.Initialize(texWood);
-        }
+        // --- GENERATE DEBUG FONT ---
+        // We create a font texture in memory so you don't need external files.
+        // This will replace the "Wood" fallback and actually show digits.
+        auto debugFontTex = TextureLoader::CreateDebugFont(m_graphics.GetDevice(), m_graphics.GetContext());
+        m_font.Initialize(debugFontTex);
 
         // 5. Create Materials
         auto matFloor = std::make_shared<Material>(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), 0.2f, 10.0f, texWood, normWood);
@@ -208,10 +204,8 @@ void Game::Update(float deltaTime)
 
 void Game::Render()
 {
-    // 1. Render 3D Scene (Shadows + Main Pass)
     m_graphics.RenderFrame(m_camera.get(), m_gameObjects, m_dirLight, m_pointLights);
 
-    // 2. Render UI (Overlay) on top of 3D
     m_graphics.EnableUIState();
 
     float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
@@ -219,6 +213,5 @@ void Game::Render()
 
     m_graphics.DisableUIState();
 
-    // 3. Present EVERYTHING (Swap Buffers)
     m_graphics.Present();
 }
