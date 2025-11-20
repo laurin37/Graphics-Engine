@@ -9,6 +9,13 @@
 
 // --- Embed Shaders ---
 const char* vertexShaderSource = R"(
+    cbuffer ConstantBuffer : register(b0)
+    {
+        matrix worldMatrix;
+        matrix viewMatrix;
+        matrix projectionMatrix;
+    }
+
     struct VS_INPUT
     {
         float3 pos : POSITION;
@@ -24,7 +31,11 @@ const char* vertexShaderSource = R"(
     PS_INPUT main(VS_INPUT input)
     {
         PS_INPUT output;
-        output.pos = float4(input.pos, 1.0f);
+        float4 pos = float4(input.pos, 1.0f);
+        pos = mul(pos, worldMatrix);
+        pos = mul(pos, viewMatrix);
+        pos = mul(pos, projectionMatrix);
+        output.pos = pos;
         output.color = input.color;
         return output;
     }
@@ -38,8 +49,7 @@ const char* pixelShaderSource = R"(
 )";
 // --- End Embed Shaders ---
 
-
-Graphics::Graphics() = default;
+Graphics::Graphics() : m_rotation(0.0f) {}
 
 void Graphics::Initialize(HWND hwnd, int width, int height)
 {
@@ -68,22 +78,32 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
     D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 
-    // Create Device, Device Context, and Swap Chain
-    HRESULT hr = D3D11CreateDeviceAndSwapChain(
-        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
-        createDeviceFlags, featureLevels, 1,
-        D3D11_SDK_VERSION, &sd, &m_swapChain,
-        &m_device, nullptr, &m_deviceContext
-    );
-    ThrowIfFailed(hr);
+    ThrowIfFailed(D3D11CreateDeviceAndSwapChain(
+        nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, createDeviceFlags, featureLevels, 1,
+        D3D11_SDK_VERSION, &sd, &m_swapChain, &m_device, nullptr, &m_deviceContext
+    ));
 
-    // Create Render Target View from the Swap Chain's back buffer
     Microsoft::WRL::ComPtr<ID3D11Resource> backBuffer;
     ThrowIfFailed(m_swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer));
     ThrowIfFailed(m_device->CreateRenderTargetView(backBuffer.Get(), nullptr, &m_renderTargetView));
 
-    // Bind the Render Target View to the output merger stage
-    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), nullptr);
+    // Create Depth/Stencil Buffer
+    D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+    depthStencilDesc.Width = width;
+    depthStencilDesc.Height = height;
+    depthStencilDesc.MipLevels = 1;
+    depthStencilDesc.ArraySize = 1;
+    depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthStencilDesc.SampleDesc.Count = 1;
+    depthStencilDesc.SampleDesc.Quality = 0;
+    depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+    depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    depthStencilDesc.CPUAccessFlags = 0;
+    depthStencilDesc.MiscFlags = 0;
+    ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, &m_depthStencilBuffer));
+    ThrowIfFailed(m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, &m_depthStencilView));
+
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
 
     // Set the viewport
     D3D11_VIEWPORT vp = {};
@@ -97,93 +117,84 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
     // Initialize the rendering pipeline
     InitPipeline();
+
+    // Setup projection matrix
+    m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
+        DirectX::XM_PIDIV4, // 45 degrees
+        static_cast<float>(width) / static_cast<float>(height),
+        0.1f,
+        100.0f
+    );
 }
 
 void Graphics::InitPipeline()
 {
-    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob;
-    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob;
-
-    // Compile Vertex Shader from memory
+    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob, pixelShaderBlob, errorBlob;
+    
+    // Compile Vertex Shader
     HRESULT hr = D3DCompile(vertexShaderSource, strlen(vertexShaderSource), "VertexShader", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexShaderBlob, &errorBlob);
-    if (FAILED(hr))
-    {
-        if (errorBlob)
-        {
-            char* errorMessage = (char*)errorBlob->GetBufferPointer();
-            throw std::runtime_error(std::string("Vertex Shader Compilation Error: ") + errorMessage);
-        }
-        else
-        {
-            ThrowIfFailed(hr);
-        }
-    }
+    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreateVertexShader(vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), nullptr, &m_vertexShader));
 
-    // Define Input Layout
-    D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] =
-    {
+    D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
     ThrowIfFailed(m_device->CreateInputLayout(inputLayoutDesc, ARRAYSIZE(inputLayoutDesc), vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), &m_inputLayout));
 
-    // Compile Pixel Shader from memory
-    Microsoft::WRL::ComPtr<ID3DBlob> pixelShaderBlob;
-    errorBlob = nullptr;
+    // Compile Pixel Shader
     hr = D3DCompile(pixelShaderSource, strlen(pixelShaderSource), "PixelShader", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShaderBlob, &errorBlob);
-    if (FAILED(hr))
-    {
-        if (errorBlob)
-        {
-            char* errorMessage = (char*)errorBlob->GetBufferPointer();
-            throw std::runtime_error(std::string("Pixel Shader Compilation Error: ") + errorMessage);
-        }
-        else
-        {
-            ThrowIfFailed(hr);
-        }
-    }
+    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
 
     // Create Vertex Buffer
-    Vertex vertices[] =
-    {
-        { DirectX::XMFLOAT3(0.0f, 0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-        { DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-        { DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }
+    Vertex vertices[] = {
+        { DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
+        { DirectX::XMFLOAT3( 0.0f,  0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
+        { DirectX::XMFLOAT3( 0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }
     };
-
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    bd.CPUAccessFlags = 0;
+    ThrowIfFailed(m_device->CreateBuffer(&bd, new D3D11_SUBRESOURCE_DATA{ vertices, 0, 0 }, &m_vertexBuffer));
 
-    D3D11_SUBRESOURCE_DATA sd = {};
-    sd.pSysMem = vertices;
-
-    ThrowIfFailed(m_device->CreateBuffer(&bd, &sd, &m_vertexBuffer));
+    // Create Constant Buffer
+    D3D11_BUFFER_DESC cbd = {};
+    cbd.Usage = D3D11_USAGE_DEFAULT;
+    cbd.ByteWidth = sizeof(CB_VS_vertexshader);
+    cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_constantBuffer));
 }
-
 
 void Graphics::RenderFrame()
 {
-    // Clear the back buffer
+    // Clear the back buffer and depth/stencil view
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
+    m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    // Update rotation
+    m_rotation += 0.005f;
+    if (m_rotation > 6.28f) m_rotation = 0.0f;
+
+    // Update matrices
+    m_worldMatrix = DirectX::XMMatrixRotationY(m_rotation);
+    m_viewMatrix = DirectX::XMMatrixLookAtLH({ 0.0f, 0.0f, -2.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f });
+
+    CB_VS_vertexshader cb;
+    DirectX::XMStoreFloat4x4(&cb.worldMatrix, DirectX::XMMatrixTranspose(m_worldMatrix));
+    DirectX::XMStoreFloat4x4(&cb.viewMatrix, DirectX::XMMatrixTranspose(m_viewMatrix));
+    DirectX::XMStoreFloat4x4(&cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
+
+    m_deviceContext->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &cb, 0, 0);
+    m_deviceContext->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 
     // Set pipeline state
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-
-    // Bind vertex buffer
-    UINT stride = sizeof(Vertex);
-    UINT offset = 0;
-    m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
-
-    // Set primitive topology
+    m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), new UINT{ sizeof(Vertex) }, new UINT{ 0 });
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     // Draw the triangle
