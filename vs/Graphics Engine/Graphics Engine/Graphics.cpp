@@ -228,20 +228,22 @@ void Graphics::InitPipeline()
     ThrowIfFailed(m_device->CreateSamplerState(&sampDesc, &m_samplerState));
 }
 
+Camera* Graphics::GetCamera()
+{
+    return m_camera.get();
+}
+
 void Graphics::RenderFrame()
 {
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    // Animate cube
-    m_rotation += 0.002f;
-    if (m_rotation > 6.28f) m_rotation = 0.0f;
-    m_worldMatrix = DirectX::XMMatrixRotationY(m_rotation) * DirectX::XMMatrixRotationX(m_rotation / 2.0f);
+    // Set world matrix to identity
+    m_worldMatrix = DirectX::XMMatrixIdentity();
 
-    // Get view matrix from camera (fixed position)
+    // Get view matrix from camera
     DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
-    DirectX::XMVECTOR cameraPos = m_camera->GetPosition();
 
     // Update VS constant buffer
     CB_VS_vertexshader vs_cb;
@@ -254,7 +256,7 @@ void Graphics::RenderFrame()
     CB_PS_light ps_cb;
     DirectX::XMStoreFloat4(&ps_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
     ps_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-    DirectX::XMStoreFloat4(&ps_cb.cameraPos, cameraPos);
+    DirectX::XMStoreFloat4(&ps_cb.cameraPos, m_camera->GetPosition());
     ps_cb.specularIntensity = 1.0f;
     ps_cb.specularPower = 32.0f;
     m_deviceContext->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &ps_cb, 0, 0);

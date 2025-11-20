@@ -50,6 +50,7 @@ public:
 
     void Initialize(HWND hwnd, int width, int height);
     void RenderFrame();
+    Camera* GetCamera();
 
 private:
     void InitPipeline();

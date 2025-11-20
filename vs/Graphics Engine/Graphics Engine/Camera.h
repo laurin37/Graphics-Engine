@@ -14,8 +14,8 @@ public:
     DirectX::XMFLOAT3 GetPositionFloat3() const;
     DirectX::XMVECTOR GetRotation() const;
 
-    void Move(float x, float y, float z);
-    void Rotate(float x, float y, float z);
+    void AdjustPosition(float x, float y, float z);
+    void AdjustRotation(float x, float y, float z);
 
     DirectX::XMMATRIX GetViewMatrix() const;
 
