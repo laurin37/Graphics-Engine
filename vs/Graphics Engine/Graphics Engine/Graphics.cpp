@@ -34,16 +34,13 @@ const char* vertexShaderSource = R"(
         PS_INPUT output;
         float4 pos = float4(input.pos, 1.0f);
         
-        // Transform position to world space for the pixel shader
         output.worldPos = mul(pos, worldMatrix).xyz;
 
-        // Transform position to clip space
         pos = mul(pos, worldMatrix);
         pos = mul(pos, viewMatrix);
         pos = mul(pos, projectionMatrix);
         output.pos = pos;
         
-        // Pass normal and UV to pixel shader
         output.normal = normalize(mul(input.normal, (float3x3)worldMatrix));
         output.uv = input.uv;
         return output;
@@ -74,21 +71,15 @@ const char* pixelShaderSource = R"(
     float4 main(PS_INPUT input) : SV_TARGET
     {
         float4 texColor = proceduralTexture.Sample(pointSampler, input.uv);
-        
-        // Ambient
         float ambient = 0.1f;
-        
-        // Diffuse
         float diffuse = saturate(dot(input.normal, -lightDir.xyz));
         float3 diffuseColor = texColor.rgb * (diffuse * lightColor.rgb + ambient);
 
-        // Specular (Blinn-Phong)
         float3 viewDir = normalize(cameraPos.xyz - input.worldPos);
         float3 halfVector = normalize(-lightDir.xyz + viewDir);
         float spec = pow(saturate(dot(input.normal, halfVector)), specularPower);
         float3 specColor = specularIntensity * spec * lightColor.rgb;
 
-        // Final color
         float3 finalColor = diffuseColor + specColor;
         return float4(finalColor, texColor.a);
     }
@@ -149,12 +140,27 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
     // Initialize camera
     m_camera = std::make_unique<Camera>();
-    m_camera->SetPosition(0.0f, 0.0f, -2.5f);
+    m_camera->SetPosition(0.0f, 1.0f, -5.0f);
 
     // Setup projection matrix
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
         DirectX::XM_PIDIV4, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f
     );
+
+    // Create GameObjects
+    auto floor = std::make_unique<GameObject>(m_meshAsset.get());
+    floor->SetPosition(0.0f, -2.0f, 0.0f);
+    floor->SetScale(10.0f, 0.1f, 10.0f);
+    m_gameObjects.push_back(std::move(floor));
+
+    auto cube1 = std::make_unique<GameObject>(m_meshAsset.get());
+    cube1->SetPosition(0.0f, 0.0f, 0.0f);
+    m_gameObjects.push_back(std::move(cube1));
+    
+    auto cube2 = std::make_unique<GameObject>(m_meshAsset.get());
+    cube2->SetPosition(2.0f, 0.0f, 2.0f);
+    cube2->SetRotation(DirectX::XM_PIDIV4, DirectX::XM_PIDIV4, 0.0f);
+    m_gameObjects.push_back(std::move(cube2));
 }
 
 void Graphics::InitPipeline()
@@ -176,7 +182,7 @@ void Graphics::InitPipeline()
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
 
-    // Create cube mesh data
+    // Create the shared mesh asset
     std::vector<Vertex> vertices = {
         { {-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }, { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
         { { 0.5f, -0.5f,  0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },  { { 0.5f,  0.5f,  0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  { {-0.5f,  0.5f,  0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f} },  { {-0.5f, -0.5f,  0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f} },
@@ -186,7 +192,7 @@ void Graphics::InitPipeline()
         { { 0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f,  0.5f, -0.5f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f,  0.5f,  0.5f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f} },  { { 0.5f, -0.5f,  0.5f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f} }
     };
     std::vector<unsigned int> indices = { 0,1,2, 0,2,3, 4,5,6, 4,6,7, 8,9,10, 8,10,11, 12,13,14, 12,14,15, 16,17,18, 16,18,19, 20,21,22, 20,22,23 };
-    m_cubeMesh = std::make_unique<Mesh>(m_device.Get(), vertices, indices);
+    m_meshAsset = std::make_unique<Mesh>(m_device.Get(), vertices, indices);
 
     // Create constant buffers
     D3D11_BUFFER_DESC cbd = {};
@@ -239,20 +245,10 @@ void Graphics::RenderFrame()
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    // Set world matrix to identity
-    m_worldMatrix = DirectX::XMMatrixIdentity();
-
     // Get view matrix from camera
     DirectX::XMMATRIX viewMatrix = m_camera->GetViewMatrix();
 
-    // Update VS constant buffer
-    CB_VS_vertexshader vs_cb;
-    DirectX::XMStoreFloat4x4(&vs_cb.worldMatrix, DirectX::XMMatrixTranspose(m_worldMatrix));
-    DirectX::XMStoreFloat4x4(&vs_cb.viewMatrix, DirectX::XMMatrixTranspose(viewMatrix));
-    DirectX::XMStoreFloat4x4(&vs_cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
-    m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
-
-    // Update PS constant buffer
+    // Update PS constant buffer (light and camera pos) - this is constant for all objects in the scene
     CB_PS_light ps_cb;
     DirectX::XMStoreFloat4(&ps_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
     ps_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -261,22 +257,33 @@ void Graphics::RenderFrame()
     ps_cb.specularPower = 32.0f;
     m_deviceContext->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &ps_cb, 0, 0);
 
-    // Bind constant buffers
-    m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
+    // Bind common pipeline state
     m_deviceContext->PSSetConstantBuffers(0, 1, m_psConstantBuffer.GetAddressOf());
-
-    // Bind textures and samplers
     m_deviceContext->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-    
-    // Set common pipeline state
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // Draw the mesh
-    m_cubeMesh->Draw(m_deviceContext.Get());
+    // Draw all game objects
+    for (const auto& pGameObject : m_gameObjects)
+    {
+        // Get world matrix from the game object
+        DirectX::XMMATRIX worldMatrix = pGameObject->GetWorldMatrix();
+
+        // Update VS constant buffer with matrices for this specific object
+        CB_VS_vertexshader vs_cb;
+        DirectX::XMStoreFloat4x4(&vs_cb.worldMatrix, DirectX::XMMatrixTranspose(worldMatrix));
+        DirectX::XMStoreFloat4x4(&vs_cb.viewMatrix, DirectX::XMMatrixTranspose(viewMatrix));
+        DirectX::XMStoreFloat4x4(&vs_cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
+        m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
+        
+        m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
+
+        // Draw the object's mesh
+        pGameObject->Draw(m_deviceContext.Get());
+    }
 
     // Present the frame
     ThrowIfFailed(m_swapChain->Present(1, 0));

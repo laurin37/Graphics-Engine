@@ -5,18 +5,11 @@
 #include <stdexcept>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
-#include <memory> // For std::unique_ptr
+#include <memory>
+#include <vector>
 #include "Mesh.h"
 #include "Camera.h"
-
-// Helper for exception-based error handling
-inline void ThrowIfFailed(HRESULT hr)
-{
-    if (FAILED(hr))
-    {
-        throw std::exception("DirectX Error");
-    }
-}
+#include "GameObject.h"
 
 // Constant buffer for vertex shader
 struct CB_VS_vertexshader
@@ -77,13 +70,10 @@ private:
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
     
     // Scene objects
-    std::unique_ptr<Mesh> m_cubeMesh;
+    std::unique_ptr<Mesh> m_meshAsset;
+    std::vector<std::unique_ptr<GameObject>> m_gameObjects;
     std::unique_ptr<Camera> m_camera;
 
     // Matrices
-    DirectX::XMMATRIX m_worldMatrix;
     DirectX::XMMATRIX m_projectionMatrix;
-
-    // Animation
-    float m_rotation;
 };

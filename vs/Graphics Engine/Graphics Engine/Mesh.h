@@ -3,8 +3,18 @@
 #include <wrl/client.h>
 #include <vector>
 #include <DirectXMath.h>
+#include <stdexcept>
 
-// Vertex structure - moved here as it's fundamental to a mesh
+// Helper for exception-based error handling, moved here to break dependency on Graphics.h
+inline void ThrowIfFailed(HRESULT hr)
+{
+    if (FAILED(hr))
+    {
+        throw std::exception("DirectX Error");
+    }
+}
+
+// Vertex structure - this is the input for our meshes
 struct Vertex
 {
     DirectX::XMFLOAT3 pos;

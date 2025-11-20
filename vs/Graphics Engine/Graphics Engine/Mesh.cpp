@@ -1,5 +1,4 @@
 #include "Mesh.h"
-#include "Graphics.h" // For ThrowIfFailed
 
 Mesh::Mesh(ID3D11Device* device, const std::vector<Vertex>& vertices, const std::vector<unsigned int>& indices)
 {
