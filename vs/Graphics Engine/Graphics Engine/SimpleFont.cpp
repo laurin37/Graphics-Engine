@@ -1,10 +1,6 @@
 #include "SimpleFont.h"
 
-SimpleFont::SimpleFont()
-{
-    // Initialisiere den Sprite-Buffer mit Nullwerten
-    memset(m_spriteBuffer, 0, sizeof(m_spriteBuffer));
-}
+SimpleFont::SimpleFont() {}
 
 void SimpleFont::Initialize(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fontTexture)
 {
@@ -13,14 +9,15 @@ void SimpleFont::Initialize(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fon
 
 void SimpleFont::DrawString(Graphics& gfx, const std::string& text, float x, float y, float size, float color[4])
 {
-    if (!m_fontTexture) return;
+    // Removed early return to allow drawing debugging quads if texture is missing
+    // if (!m_fontTexture) return; 
 
     int numChars = 0;
     float curX = x;
     float curY = y;
 
-    const float charStep = size * 0.6f; // Overlap slightly or adjust spacing
-    const float uvStep = 1.0f / 16.0f;  // 16x16 grid
+    const float charStep = size * 0.6f;
+    const float uvStep = 1.0f / 16.0f;
 
     for (char c : text)
     {
@@ -32,7 +29,6 @@ void SimpleFont::DrawString(Graphics& gfx, const std::string& text, float x, flo
             continue;
         }
 
-        // Calculate UVs
         unsigned char uc = static_cast<unsigned char>(c);
         int col = uc % 16;
         int row = uc / 16;
@@ -40,7 +36,6 @@ void SimpleFont::DrawString(Graphics& gfx, const std::string& text, float x, flo
         float u = col * uvStep;
         float v = row * uvStep;
 
-        // Setup 6 vertices for a quad (Triangle List)
         // Top-Left
         m_spriteBuffer[numChars * 6 + 0].pos = { curX, curY, 0.0f };
         m_spriteBuffer[numChars * 6 + 0].uv = { u, v };

@@ -38,9 +38,6 @@ const char* uiVertexShaderSource = R"(
         PS_INPUT output;
         
         // Convert Screen Pixels to NDC (-1 to 1)
-        // x: (x / width) * 2 - 1
-        // y: -((y / height) * 2 - 1)  <-- Flip Y
-        
         output.pos.x = (input.pos.x / screenSize.x) * 2.0 - 1.0;
         output.pos.y = -((input.pos.y / screenSize.y) * 2.0 - 1.0);
         output.pos.z = 0.0;
@@ -65,12 +62,9 @@ const char* uiPixelShaderSource = R"(
 
     float4 main(PS_INPUT input) : SV_TARGET
     {
-        // Sample font texture (alpha/grayscale mostly)
         float4 texColor = g_texture.Sample(g_sampler, input.uv);
-        
-        // Multiply by vertex color (allows changing text color)
-        // Assume texture is white with alpha, or use channel R for alpha if it's a mask
-        // Standard simple implementation:
+        // If you don't have a real font texture yet, this keeps it visible (removes alpha check)
+        if (texColor.a == 0.0) discard; 
         return texColor * input.color;
     }
 )";
@@ -163,25 +157,19 @@ const char* pixelShaderSource = R"(
         float4 lightSpacePos : TEXCOORD1;
     };
 
-    // --- Helper Function ---
     float3 CalcLighting(float3 litColor, float3 pixelNormal, float3 lightVec, float3 lightColor, float3 viewDir, float specIntensity, float specPower)
     {
-        // Diffuse
         float diffuseFactor = saturate(dot(pixelNormal, lightVec));
         float3 diffuse = litColor * diffuseFactor * lightColor;
-
-        // Specular (Blinn-Phong)
         float3 halfVector = normalize(lightVec + viewDir);
         float specFactor = pow(saturate(dot(pixelNormal, halfVector)), specPower);
         float3 specular = specIntensity * specFactor * lightColor;
-
         return diffuse + specular;
     }
 
 
     float4 main(PS_INPUT input) : SV_TARGET
     {
-        // --- Normal Mapping with Auto-Detection ---
         float3 N = normalize(input.normal);
         float3 T = normalize(input.tangent - dot(input.tangent, N) * N);
         float3 B = cross(N, T);
@@ -190,28 +178,18 @@ const char* pixelShaderSource = R"(
         float3 normalMapSample = g_normalMap.Sample(g_sampler, input.uv).rgb;
         float3 pixelNormal;
 
-        // Check Blue channel. If it's very low (< 0.2), this is likely a grayscale displacement map, not a normal map.
         if (normalMapSample.b < 0.2) 
         {
-             // Fallback: Perturb Normal using derivatives of height (R channel)
              float height = normalMapSample.r;
-             
-             // Calculate derivatives of height and position
              float dHdx = ddx(height);
              float dHdy = ddy(height);
              float3 dPdx = ddx(input.worldPos);
              float3 dPdy = ddy(input.worldPos);
-
-             // Calculate Surface Gradient
-             // The factor 50.0 is the 'bump scale' - adjustable for strength
              float3 surfGrad = (dHdx * dPdx + dHdy * dPdy) * 50.0f;
-             
-             // Perturb the geometric normal
              pixelNormal = normalize(N - surfGrad);
         }
         else
         {
-             // Standard Normal Map (Blue > 0.5 usually)
              float3 tangentSpaceNormal = normalize(normalMapSample * 2.0 - 1.0);
              pixelNormal = normalize(mul(tangentSpaceNormal, TBN));
         }
@@ -219,7 +197,6 @@ const char* pixelShaderSource = R"(
         float4 texColor = g_texture.Sample(g_sampler, input.uv);
         float3 baseColor = texColor.rgb * surfaceColor.rgb;
         
-        // --- Shadow Calculation ---
         float shadowFactor = 0.0;
         float3 projCoords = input.lightSpacePos.xyz / input.lightSpacePos.w;
         projCoords.x = projCoords.x * 0.5 + 0.5;
@@ -246,32 +223,24 @@ const char* pixelShaderSource = R"(
             shadowFactor = 1.0;
         }
         
-        // --- Lighting ---
         float3 finalColor = float3(0, 0, 0);
         float3 viewDir = normalize(cameraPos.xyz - input.worldPos);
 
-        // 1. Ambient Light
         finalColor += baseColor * 0.15f;
 
-        // 2. Directional Light (with shadows)
         float3 dirLightContrib = CalcLighting(baseColor, pixelNormal, -dirLightDirection.xyz, dirLightColor.rgb * dirLightColor.a, viewDir, specularIntensity, specularPower);
         finalColor += dirLightContrib * shadowFactor;
 
-        // 3. Point Lights
         [unroll]
         for (int i = 0; i < 4; ++i)
         {
             float3 lightVec = pointLightPos[i].xyz - input.worldPos;
             float dist = length(lightVec);
             
-            // Only calculate if within range
             if (dist < pointLightPos[i].w)
             {
                 lightVec = normalize(lightVec);
-
                 float3 pointLightContrib = CalcLighting(baseColor, pixelNormal, lightVec, pointLightColor[i].rgb * pointLightColor[i].a, viewDir, specularIntensity, specularPower);
-                
-                // Attenuation
                 float att = 1.0 / (pointLightAtt[i].x + pointLightAtt[i].y * dist + pointLightAtt[i].z * dist * dist);
                 finalColor += pointLightContrib * att;
             }
@@ -372,7 +341,6 @@ void Graphics::InitPipeline()
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("UI PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(uiPSBlob->GetBufferPointer(), uiPSBlob->GetBufferSize(), nullptr, &m_uiPS));
 
-    // UI Input Layout
     D3D11_INPUT_ELEMENT_DESC uiInputDesc[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
@@ -397,22 +365,20 @@ void Graphics::InitPipeline()
     cbd.ByteWidth = sizeof(DirectX::XMMATRIX);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_cbShadowMatrix));
 
-    // UI Constant Buffer
     cbd.ByteWidth = sizeof(CB_VS_UI);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_uiConstantBuffer));
 
     // --- 5. Vertex Buffers (Dynamic for UI) ---
     D3D11_BUFFER_DESC uiVBD = {};
     uiVBD.Usage = D3D11_USAGE_DYNAMIC;
-    uiVBD.ByteWidth = sizeof(SpriteVertex) * 256 * 6; // Sufficient for max chars in SimpleFont
+    uiVBD.ByteWidth = sizeof(SpriteVertex) * 256 * 6;
     uiVBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     uiVBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     ThrowIfFailed(m_device->CreateBuffer(&uiVBD, nullptr, &m_uiVertexBuffer));
 
     // --- 6. Textures & Samplers ---
-    // Create a 1x1 white texture to act as a default for non-textured materials
     const int texWidth = 1, texHeight = 1;
-    std::vector<uint32_t> texData(texWidth * texHeight, 0xFFFFFFFF); // 0xFFFFFFFF = white
+    std::vector<uint32_t> texData(texWidth * texHeight, 0xFFFFFFFF);
 
     Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
     D3D11_TEXTURE2D_DESC texDesc = {};
@@ -482,7 +448,7 @@ void Graphics::InitPipeline()
     rsDesc.SlopeScaledDepthBias = 1.0f;
     ThrowIfFailed(m_device->CreateRasterizerState(&rsDesc, &m_shadowRS));
 
-    // --- 8. UI States (Blend & Depth) ---
+    // --- 8. UI States ---
     D3D11_BLEND_DESC blendDesc = {};
     blendDesc.RenderTarget[0].BlendEnable = TRUE;
     blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
@@ -495,10 +461,17 @@ void Graphics::InitPipeline()
     ThrowIfFailed(m_device->CreateBlendState(&blendDesc, &m_uiBlendState));
 
     D3D11_DEPTH_STENCIL_DESC dsDesc = {};
-    dsDesc.DepthEnable = FALSE; // Disable Depth for UI
+    dsDesc.DepthEnable = FALSE;
     dsDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    dsDesc.DepthFunc = D3D11_COMPARISON_LESS;
+    dsDesc.DepthFunc = D3D11_COMPARISON_ALWAYS; // Changed to ALWAYS
     ThrowIfFailed(m_device->CreateDepthStencilState(&dsDesc, &m_uiDepthStencilState));
+
+    // --- 9. UI Rasterizer State (No Culling) ---
+    D3D11_RASTERIZER_DESC uiRSDesc = {};
+    uiRSDesc.FillMode = D3D11_FILL_SOLID;
+    uiRSDesc.CullMode = D3D11_CULL_NONE; // Critical for 2D
+    uiRSDesc.DepthClipEnable = true;
+    ThrowIfFailed(m_device->CreateRasterizerState(&uiRSDesc, &m_uiRS));
 }
 
 ID3D11Device* Graphics::GetDevice() const
@@ -534,8 +507,8 @@ void Graphics::EnableUIState()
     float blendFactor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
     m_deviceContext->OMSetBlendState(m_uiBlendState.Get(), blendFactor, 0xffffffff);
     m_deviceContext->OMSetDepthStencilState(m_uiDepthStencilState.Get(), 0);
+    m_deviceContext->RSSetState(m_uiRS.Get()); // Set CullNone
 
-    // Update UI Constant Buffer with current screen size
     CB_VS_UI cbUI;
     cbUI.screenSize = DirectX::XMFLOAT2(m_screenWidth, m_screenHeight);
     cbUI.padding = DirectX::XMFLOAT2(0, 0);
@@ -546,14 +519,14 @@ void Graphics::EnableUIState()
 void Graphics::DisableUIState()
 {
     m_deviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
-    m_deviceContext->OMSetDepthStencilState(nullptr, 0); // Reset to default
+    m_deviceContext->OMSetDepthStencilState(nullptr, 0);
+    m_deviceContext->RSSetState(nullptr); // Reset to default
 }
 
 void Graphics::DrawUI(const SpriteVertex* vertices, size_t count, ID3D11ShaderResourceView* texture)
 {
     if (count == 0) return;
 
-    // Map the dynamic buffer
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     HRESULT hr = m_deviceContext->Map(m_uiVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if (FAILED(hr)) return;
@@ -561,7 +534,6 @@ void Graphics::DrawUI(const SpriteVertex* vertices, size_t count, ID3D11ShaderRe
     memcpy(mappedResource.pData, vertices, sizeof(SpriteVertex) * count);
     m_deviceContext->Unmap(m_uiVertexBuffer.Get(), 0);
 
-    // Set Pipeline
     UINT stride = sizeof(SpriteVertex);
     UINT offset = 0;
     m_deviceContext->IASetVertexBuffers(0, 1, m_uiVertexBuffer.GetAddressOf(), &stride, &offset);
@@ -622,7 +594,6 @@ void Graphics::RenderMainPass(
     const std::vector<PointLight>& pointLights
 )
 {
-    // Get window size to set viewport
     D3D11_TEXTURE2D_DESC backBufferDesc;
     Microsoft::WRL::ComPtr<ID3D11Resource> backBuffer;
     m_swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
@@ -638,13 +609,12 @@ void Graphics::RenderMainPass(
     m_deviceContext->RSSetState(nullptr);
 
     m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-    const float clearColor[] = { 0.0f, 0.05f, 0.1f, 1.0f }; // Darker blue
+    const float clearColor[] = { 0.0f, 0.05f, 0.1f, 1.0f };
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     DirectX::XMMATRIX viewMatrix = camera->GetViewMatrix();
 
-    // --- Update Frame Constant Buffer ---
     CB_PS_Frame ps_frame_cb;
     ps_frame_cb.dirLight = dirLight;
     for (size_t i = 0; i < MAX_POINT_LIGHTS; ++i)
@@ -653,9 +623,8 @@ void Graphics::RenderMainPass(
             ps_frame_cb.pointLights[i] = pointLights[i];
         }
         else {
-            // Zero out unused lights
             ps_frame_cb.pointLights[i] = {};
-            ps_frame_cb.pointLights[i].color.w = 0; // Intensity = 0
+            ps_frame_cb.pointLights[i].color.w = 0;
         }
     }
     DirectX::XMStoreFloat4(&ps_frame_cb.cameraPos, camera->GetPosition());
@@ -663,9 +632,9 @@ void Graphics::RenderMainPass(
 
     m_deviceContext->PSSetConstantBuffers(0, 1, m_psFrameConstantBuffer.GetAddressOf());
     m_deviceContext->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
-    m_deviceContext->PSSetShaderResources(2, 1, m_shadowSRV.GetAddressOf()); // Slot 2 now
+    m_deviceContext->PSSetShaderResources(2, 1, m_shadowSRV.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
-    m_deviceContext->PSSetSamplers(2, 1, m_shadowSampler.GetAddressOf());   // Slot 2 now
+    m_deviceContext->PSSetSamplers(2, 1, m_shadowSampler.GetAddressOf());
 
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
