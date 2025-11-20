@@ -22,7 +22,7 @@ static unsigned int process_face_corner(
 {
     std::stringstream corner_ss(corner_str);
     std::string p_str, t_str, n_str;
-    
+
     long p_idx = 0, t_idx = 0, n_idx = 0;
 
     std::getline(corner_ss, p_str, '/');
@@ -58,7 +58,10 @@ static unsigned int process_face_corner(
     v.pos = temp_positions[p_idx - 1];
     v.uv = (t_idx > 0) ? temp_uvs[t_idx - 1] : DirectX::XMFLOAT2(0.0f, 0.0f);
     v.normal = (n_idx > 0) ? temp_normals[n_idx - 1] : DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f); // Default normal up
-    
+
+    // FIX: Initialize tangent to zero so accumulation works correctly
+    v.tangent = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+
     finalVertices.push_back(v);
     unsigned int newIndex = static_cast<unsigned int>(finalVertices.size() - 1);
     vertexIndexMap[key] = newIndex;
@@ -116,7 +119,7 @@ std::unique_ptr<Mesh> ModelLoader::Load(ID3D11Device* device, const std::string&
         {
             std::string corner_str;
             std::vector<unsigned int> face_indices;
-            while(ss >> corner_str)
+            while (ss >> corner_str)
             {
                 face_indices.push_back(process_face_corner(
                     corner_str, temp_positions, temp_uvs, temp_normals, finalVertices, vertexIndexMap
@@ -178,7 +181,7 @@ std::unique_ptr<Mesh> ModelLoader::Load(ID3D11Device* device, const std::string&
         tangent = DirectX::XMVector3Normalize(
             DirectX::XMVectorSubtract(tangent, DirectX::XMVectorMultiply(normal, DirectX::XMVector3Dot(normal, tangent)))
         );
-        
+
         DirectX::XMStoreFloat3(&v.tangent, tangent);
     }
 

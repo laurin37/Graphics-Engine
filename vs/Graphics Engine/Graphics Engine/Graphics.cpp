@@ -116,16 +116,43 @@ const char* pixelShaderSource = R"(
 
     float4 main(PS_INPUT input) : SV_TARGET
     {
-        // --- Normal Mapping ---
+        // --- Normal Mapping with Auto-Detection ---
         float3 N = normalize(input.normal);
         float3 T = normalize(input.tangent - dot(input.tangent, N) * N);
         float3 B = cross(N, T);
         float3x3 TBN = float3x3(T, B, N);
         
         float3 normalMapSample = g_normalMap.Sample(g_sampler, input.uv).rgb;
-        float3 tangentSpaceNormal = normalize(normalMapSample * 2.0 - 1.0);
-        float3 pixelNormal = normalize(mul(tangentSpaceNormal, TBN));
+        float3 pixelNormal;
 
+        // Check Blue channel. If it's very low (< 0.2), this is likely a grayscale displacement map, not a normal map.
+        if (normalMapSample.b < 0.2) 
+        {
+             // Fallback: Perturb Normal using derivatives of height (R channel)
+             float height = normalMapSample.r;
+             
+             // Calculate derivatives of height and position
+             float dHdx = ddx(height);
+             float dHdy = ddy(height);
+             float3 dPdx = ddx(input.worldPos);
+             float3 dPdy = ddy(input.worldPos);
+
+             // Calculate Surface Gradient
+             // The factor 50.0 is the 'bump scale' - adjustable for strength
+             float3 surfGrad = (dHdx * dPdx + dHdy * dPdy) * 50.0f;
+             
+             // Perturb the geometric normal
+             pixelNormal = normalize(N - surfGrad);
+        }
+        else
+        {
+             // Standard Normal Map (Blue > 0.5 usually)
+             float3 tangentSpaceNormal = normalize(normalMapSample * 2.0 - 1.0);
+             pixelNormal = normalize(mul(tangentSpaceNormal, TBN));
+        }
+
+        // VISUAL DEBUG: Uncomment to see the normals directly
+        // return float4(pixelNormal * 0.5 + 0.5, 1.0);
 
         float4 texColor = g_texture.Sample(g_sampler, input.uv);
         float3 baseColor = texColor.rgb * surfaceColor.rgb;
@@ -233,7 +260,7 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
     depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, &m_depthStencilBuffer));
     ThrowIfFailed(m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, &m_depthStencilView));
-    
+
     InitPipeline();
 
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
@@ -244,7 +271,7 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 void Graphics::InitPipeline()
 {
     Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob, pixelShaderBlob, errorBlob, shadowVSBlob;
-    
+
     HRESULT hr = D3DCompile(vertexShaderSource, strlen(vertexShaderSource), "VertexShader", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexShaderBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreateVertexShader(vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), nullptr, &m_vertexShader));
@@ -260,7 +287,7 @@ void Graphics::InitPipeline()
     hr = D3DCompile(pixelShaderSource, strlen(pixelShaderSource), "PixelShader", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShaderBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
-    
+
     hr = D3DCompile(shadowVertexShaderSource, strlen(shadowVertexShaderSource), "ShadowVS", nullptr, nullptr, "main", "vs_5_0", 0, 0, &shadowVSBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("Shadow VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreateVertexShader(shadowVSBlob->GetBufferPointer(), shadowVSBlob->GetBufferSize(), nullptr, &m_shadowVS));
@@ -268,7 +295,7 @@ void Graphics::InitPipeline()
     D3D11_BUFFER_DESC cbd = {};
     cbd.Usage = D3D11_USAGE_DEFAULT;
     cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    
+
     cbd.ByteWidth = sizeof(CB_VS_vertexshader);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_vsConstantBuffer));
 
@@ -277,7 +304,7 @@ void Graphics::InitPipeline()
 
     cbd.ByteWidth = sizeof(CBuffer_PS_Material);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psMaterialConstantBuffer));
-    
+
     cbd.ByteWidth = sizeof(DirectX::XMMATRIX);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_cbShadowMatrix));
 
@@ -343,7 +370,7 @@ void Graphics::InitPipeline()
     shadowSampDesc.BorderColor[2] = 1.0f;
     shadowSampDesc.BorderColor[3] = 1.0f;
     ThrowIfFailed(m_device->CreateSamplerState(&shadowSampDesc, &m_shadowSampler));
-    
+
     D3D11_RASTERIZER_DESC rsDesc = {};
     rsDesc.FillMode = D3D11_FILL_SOLID;
     rsDesc.CullMode = D3D11_CULL_BACK;
@@ -410,7 +437,7 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
         if (!pGameObject) continue;
         DirectX::XMMATRIX worldMatrix = pGameObject->GetWorldMatrix();
         DirectX::XMMATRIX wvp = worldMatrix * outLightView * outLightProj;
-        
+
         DirectX::XMMATRIX wvpT = DirectX::XMMatrixTranspose(wvp);
         m_deviceContext->UpdateSubresource(m_cbShadowMatrix.Get(), 0, nullptr, &wvpT, 0, 0);
         m_deviceContext->VSSetConstantBuffers(0, 1, m_cbShadowMatrix.GetAddressOf());
@@ -420,8 +447,8 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
 }
 
 void Graphics::RenderMainPass(
-    Camera* camera, 
-    const std::vector<std::unique_ptr<GameObject>>& gameObjects, 
+    Camera* camera,
+    const std::vector<std::unique_ptr<GameObject>>& gameObjects,
     const DirectX::XMMATRIX& lightViewProj,
     const DirectionalLight& dirLight,
     const std::vector<PointLight>& pointLights
@@ -456,9 +483,10 @@ void Graphics::RenderMainPass(
     {
         if (i < pointLights.size()) {
             ps_frame_cb.pointLights[i] = pointLights[i];
-        } else {
+        }
+        else {
             // Zero out unused lights
-            ps_frame_cb.pointLights[i] = {}; 
+            ps_frame_cb.pointLights[i] = {};
             ps_frame_cb.pointLights[i].color.w = 0; // Intensity = 0
         }
     }
@@ -487,7 +515,7 @@ void Graphics::RenderMainPass(
         DirectX::XMStoreFloat4x4(&vs_cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
         DirectX::XMStoreFloat4x4(&vs_cb.lightViewProjMatrix, DirectX::XMMatrixTranspose(lightViewProj));
         m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
-        
+
         m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
 
         pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
