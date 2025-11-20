@@ -4,7 +4,9 @@
 #include "TextureLoader.h"
 #include "Graphics.h" // For ThrowIfFailed
 
-Game::Game() {}
+Game::Game()
+    : m_dirLight{ {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f} }
+{}
 
 bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
 {

@@ -219,7 +219,9 @@ const char* pixelShaderSource = R"(
     }
 )";
 
-Graphics::Graphics() {}
+Graphics::Graphics()
+    : m_projectionMatrix(DirectX::XMMatrixIdentity())
+{}
 
 void Graphics::Initialize(HWND hwnd, int width, int height)
 {
@@ -424,7 +426,7 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
 
     DirectX::XMVECTOR lightPos = DirectX::XMVectorSet(20.0f, 30.0f, -20.0f, 0.0f);
     DirectX::XMVECTOR lightTarget = DirectX::XMVectorZero();
-    outLightView = DirectX::XMMatrixLookAtLH(lightPos, lightTarget, { 0.0f, 1.0f, 0.0f, 0.0f });
+    outLightView = DirectX::XMMatrixLookAtLH(lightPos, lightTarget, { 0.0f, 1.0f, 0.0f });
     outLightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.1f, 100.0f);
 
     m_deviceContext->VSSetShader(m_shadowVS.Get(), nullptr, 0);

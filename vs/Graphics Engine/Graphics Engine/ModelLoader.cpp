@@ -36,9 +36,9 @@ static unsigned int process_face_corner(
     }
 
     // Handle negative indices (relative to the current list size)
-    if (p_idx < 0) p_idx = temp_positions.size() + p_idx + 1;
-    if (t_idx < 0) t_idx = temp_uvs.size() + t_idx + 1;
-    if (n_idx < 0) n_idx = temp_normals.size() + n_idx + 1;
+    if (p_idx < 0) p_idx = static_cast<long>(temp_positions.size()) + p_idx + 1;
+    if (t_idx < 0) t_idx = static_cast<long>(temp_uvs.size()) + t_idx + 1;
+    if (n_idx < 0) n_idx = static_cast<long>(temp_normals.size()) + n_idx + 1;
 
     // Safety check indices before access
     if (p_idx <= 0 || p_idx > temp_positions.size()) throw std::runtime_error("Invalid position index in OBJ file.");
