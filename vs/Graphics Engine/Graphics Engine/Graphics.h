@@ -21,15 +21,12 @@ struct CB_VS_vertexshader
     DirectX::XMFLOAT4X4 projectionMatrix;
 };
 
-// Constant buffer for pixel shader
-struct CB_PS_light
+// Constant buffer for pixel shader (per-frame data)
+struct CB_PS_Frame
 {
     DirectX::XMFLOAT4 lightDir;
     DirectX::XMFLOAT4 lightColor;
     DirectX::XMFLOAT4 cameraPos;
-    float specularIntensity;
-    float specularPower;
-    float padding[2];
 };
 
 class Graphics
@@ -64,7 +61,8 @@ private:
     Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
     Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_vsConstantBuffer;
-    Microsoft::WRL::ComPtr<ID3D11Buffer> m_psConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_psFrameConstantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_psMaterialConstantBuffer;
 
     // Texturing objects
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_textureView;

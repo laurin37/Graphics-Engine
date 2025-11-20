@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "Material.h"
 
 Game::Game() {}
 
@@ -16,17 +17,21 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
         m_camera = std::make_unique<Camera>();
         m_camera->SetPosition(0.0f, 1.0f, -5.0f);
 
+        // Create Materials
+        auto shinyRedMat = std::make_shared<Material>(DirectX::XMFLOAT4(1.0f, 0.2f, 0.2f, 1.0f), 2.0f, 64.0f);
+        auto dullGrayMat = std::make_shared<Material>(DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f), 0.1f, 8.0f);
+
         // Create GameObjects
-        auto floor = std::make_unique<GameObject>(m_graphics.GetMeshAsset());
+        auto floor = std::make_unique<GameObject>(m_graphics.GetMeshAsset(), dullGrayMat);
         floor->SetPosition(0.0f, -2.0f, 0.0f);
         floor->SetScale(10.0f, 0.1f, 10.0f);
         m_gameObjects.push_back(std::move(floor));
 
-        auto cube1 = std::make_unique<GameObject>(m_graphics.GetMeshAsset());
+        auto cube1 = std::make_unique<GameObject>(m_graphics.GetMeshAsset(), shinyRedMat);
         cube1->SetPosition(0.0f, 0.0f, 0.0f);
         m_gameObjects.push_back(std::move(cube1));
         
-        auto cube2 = std::make_unique<GameObject>(m_graphics.GetMeshAsset());
+        auto cube2 = std::make_unique<GameObject>(m_graphics.GetMeshAsset(), shinyRedMat);
         cube2->SetPosition(2.0f, 0.0f, 2.0f);
         m_gameObjects.push_back(std::move(cube2));
     }

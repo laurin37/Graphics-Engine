@@ -2,8 +2,8 @@
 
 using namespace DirectX;
 
-GameObject::GameObject(Mesh* mesh)
-    : m_pMesh(mesh), m_pos({0,0,0}), m_rot({0,0,0}), m_scale({1,1,1})
+GameObject::GameObject(Mesh* mesh, std::shared_ptr<Material> material)
+    : m_pMesh(mesh), m_material(material), m_pos({0,0,0}), m_rot({0,0,0}), m_scale({1,1,1})
 {}
 
 void GameObject::SetPosition(float x, float y, float z) { m_pos = { x, y, z }; }
@@ -17,8 +17,13 @@ XMMATRIX GameObject::GetWorldMatrix() const
            XMMatrixTranslation(m_pos.x, m_pos.y, m_pos.z);
 }
 
-void GameObject::Draw(ID3D11DeviceContext* context) const
+void GameObject::Draw(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialConstantBuffer) const
 {
+    if (m_material)
+    {
+        m_material->Bind(context, psMaterialConstantBuffer);
+    }
+
     if (m_pMesh)
     {
         m_pMesh->Draw(context);

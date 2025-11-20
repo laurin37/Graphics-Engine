@@ -38,11 +38,16 @@ const char* pixelShaderSource = R"(
     Texture2D proceduralTexture : register(t0);
     SamplerState pointSampler : register(s0);
 
-    cbuffer LightBuffer : register(b0)
+    cbuffer FrameData : register(b0)
     {
         float4 lightDir;
         float4 lightColor;
         float4 cameraPos;
+    }
+
+    cbuffer MaterialData : register(b1)
+    {
+        float4 surfaceColor;
         float specularIntensity;
         float specularPower;
     }
@@ -52,13 +57,17 @@ const char* pixelShaderSource = R"(
     float4 main(PS_INPUT input) : SV_TARGET
     {
         float4 texColor = proceduralTexture.Sample(pointSampler, input.uv);
-        float ambient = 0.1f;
+        float3 litColor = texColor.rgb * surfaceColor.rgb;
+        
+        float ambient = 0.15f; // Slightly higher ambient
         float diffuse = saturate(dot(input.normal, -lightDir.xyz));
-        float3 diffuseColor = texColor.rgb * (diffuse * lightColor.rgb + ambient);
+        float3 diffuseColor = litColor * (diffuse * lightColor.rgb + ambient);
+
         float3 viewDir = normalize(cameraPos.xyz - input.worldPos);
         float3 halfVector = normalize(-lightDir.xyz + viewDir);
         float spec = pow(saturate(dot(input.normal, halfVector)), specularPower);
         float3 specColor = specularIntensity * spec * lightColor.rgb;
+
         float3 finalColor = diffuseColor + specColor;
         return float4(finalColor, texColor.a);
     }
@@ -154,12 +163,16 @@ void Graphics::InitPipeline()
 
     D3D11_BUFFER_DESC cbd = {};
     cbd.Usage = D3D11_USAGE_DEFAULT;
-    cbd.ByteWidth = sizeof(CB_VS_vertexshader);
     cbd.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    
+    cbd.ByteWidth = sizeof(CB_VS_vertexshader);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_vsConstantBuffer));
 
-    cbd.ByteWidth = sizeof(CB_PS_light);
-    ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psConstantBuffer));
+    cbd.ByteWidth = sizeof(CB_PS_Frame);
+    ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psFrameConstantBuffer));
+
+    cbd.ByteWidth = sizeof(CBuffer_PS_Material);
+    ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psMaterialConstantBuffer));
 
     const int texWidth = 64, texHeight = 64;
     std::vector<uint32_t> texData(texWidth * texHeight);
@@ -195,7 +208,7 @@ Mesh* Graphics::GetMeshAsset() const
     return m_meshAsset.get();
 }
 
-void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& objects)
+void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects)
 {
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
@@ -203,15 +216,13 @@ void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<Gam
 
     DirectX::XMMATRIX viewMatrix = camera->GetViewMatrix();
 
-    CB_PS_light ps_cb;
-    DirectX::XMStoreFloat4(&ps_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
-    ps_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-    DirectX::XMStoreFloat4(&ps_cb.cameraPos, camera->GetPosition());
-    ps_cb.specularIntensity = 1.0f;
-    ps_cb.specularPower = 32.0f;
-    m_deviceContext->UpdateSubresource(m_psConstantBuffer.Get(), 0, nullptr, &ps_cb, 0, 0);
+    CB_PS_Frame ps_frame_cb;
+    DirectX::XMStoreFloat4(&ps_frame_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
+    ps_frame_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+    DirectX::XMStoreFloat4(&ps_frame_cb.cameraPos, camera->GetPosition());
+    m_deviceContext->UpdateSubresource(m_psFrameConstantBuffer.Get(), 0, nullptr, &ps_frame_cb, 0, 0);
 
-    m_deviceContext->PSSetConstantBuffers(0, 1, m_psConstantBuffer.GetAddressOf());
+    m_deviceContext->PSSetConstantBuffers(0, 1, m_psFrameConstantBuffer.GetAddressOf());
     m_deviceContext->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
@@ -219,7 +230,7 @@ void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<Gam
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    for (const auto& pGameObject : objects)
+    for (const auto& pGameObject : gameObjects)
     {
         DirectX::XMMATRIX worldMatrix = pGameObject->GetWorldMatrix();
 
@@ -231,7 +242,7 @@ void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<Gam
         
         m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
 
-        pGameObject->Draw(m_deviceContext.Get());
+        pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
     }
 
     ThrowIfFailed(m_swapChain->Present(1, 0));
