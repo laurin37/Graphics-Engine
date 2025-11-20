@@ -88,31 +88,41 @@ const char* pixelShaderSource = R"(
         float4 texColor = g_texture.Sample(g_sampler, input.uv);
         float3 litColor = texColor.rgb * surfaceColor.rgb;
         
-        // Shadow calculation
-        float shadowFactor = 1.0;
-        // Projective texturing
+        // --- Shadow Calculation (3x3 PCF) ---
+        float shadowFactor = 0.0;
         float3 projCoords = input.lightSpacePos.xyz / input.lightSpacePos.w;
-        // Transform from [-1, 1] to [0, 1] texture coord range
         projCoords.x = projCoords.x * 0.5 + 0.5;
         projCoords.y = projCoords.y * -0.5 + 0.5;
-        
+
+        float shadowBias = 0.0005f; // Tweakable value for shadow acne
+        float texelSize = 1.0 / 2048.0;
+
         if (saturate(projCoords.z) > 0.0 && saturate(projCoords.x) > 0.0 && saturate(projCoords.y) > 0.0)
         {
-            shadowFactor = g_shadowMap.SampleCmpLevelZero(g_shadowSampler, projCoords.xy, projCoords.z - 0.0005f);
+            for (int x = -1; x <= 1; ++x)
+            {
+                for (int y = -1; y <= 1; ++y)
+                {
+                    shadowFactor += g_shadowMap.SampleCmpLevelZero(g_shadowSampler, projCoords.xy + float2(x, y) * texelSize, projCoords.z - shadowBias);
+                }
+            }
+            shadowFactor /= 9.0;
         }
-
-        // Lighting
+        
+        // --- Lighting ---
         float ambient = 0.15f;
+        float3 ambientColor = litColor * ambient;
+
         float diffuse = saturate(dot(input.normal, -lightDir.xyz));
-        float3 diffuseColor = litColor * (diffuse * lightColor.rgb + ambient);
+        float3 diffuseLight = litColor * diffuse * lightColor.rgb;
 
         float3 viewDir = normalize(cameraPos.xyz - input.worldPos);
         float3 halfVector = normalize(-lightDir.xyz + viewDir);
         float spec = pow(saturate(dot(input.normal, halfVector)), specularPower);
         float3 specColor = specularIntensity * spec * lightColor.rgb;
 
-        // Final color
-        float3 finalColor = diffuseColor * shadowFactor + specColor * shadowFactor;
+        // Final color with shadows on direct light only
+        float3 finalColor = ambientColor + (diffuseLight + specColor) * shadowFactor;
         return float4(finalColor, texColor.a);
     }
 )";
@@ -314,7 +324,7 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
     m_deviceContext->OMSetRenderTargets(0, nullptr, m_shadowDSV.Get());
     m_deviceContext->ClearDepthStencilView(m_shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-    DirectX::XMVECTOR lightPos = DirectX::XMVectorSet(20.0f, 20.0f, -20.0f, 0.0f);
+    DirectX::XMVECTOR lightPos = DirectX::XMVectorSet(20.0f, 30.0f, -20.0f, 0.0f);
     DirectX::XMVECTOR lightTarget = DirectX::XMVectorZero();
     outLightView = DirectX::XMMatrixLookAtLH(lightPos, lightTarget, { 0.0f, 1.0f, 0.0f, 0.0f });
     outLightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.1f, 100.0f);
@@ -339,7 +349,6 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
 
 void Graphics::RenderMainPass(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects, const DirectX::XMMATRIX& lightViewProj)
 {
-    // Get window size to set viewport
     D3D11_TEXTURE2D_DESC backBufferDesc;
     Microsoft::WRL::ComPtr<ID3D11Resource> backBuffer;
     m_swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
@@ -362,7 +371,7 @@ void Graphics::RenderMainPass(Camera* camera, const std::vector<std::unique_ptr<
     DirectX::XMMATRIX viewMatrix = camera->GetViewMatrix();
 
     CB_PS_Frame ps_frame_cb;
-    DirectX::XMStoreFloat4(&ps_frame_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f)));
+    DirectX::XMStoreFloat4(&ps_frame_cb.lightDir, DirectX::XMVector3Normalize(DirectX::XMVectorSet(-0.5f, -0.5f, 1.0f, 0.0f)));
     ps_frame_cb.lightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
     DirectX::XMStoreFloat4(&ps_frame_cb.cameraPos, camera->GetPosition());
     m_deviceContext->UpdateSubresource(m_psFrameConstantBuffer.Get(), 0, nullptr, &ps_frame_cb, 0, 0);
