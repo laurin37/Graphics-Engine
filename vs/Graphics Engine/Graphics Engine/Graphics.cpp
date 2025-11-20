@@ -147,17 +147,41 @@ void Graphics::InitPipeline()
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
 
-    // Create Vertex Buffer
-    Vertex vertices[] = {
-        { DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) },
-        { DirectX::XMFLOAT3( 0.0f,  0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) },
-        { DirectX::XMFLOAT3( 0.5f, -0.5f, 0.0f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }
+    // Create Vertex Buffer for a cube
+    Vertex vertices[] =
+    {
+        { DirectX::XMFLOAT3(-0.5f, -0.5f, -0.5f), DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f) }, // 0
+        { DirectX::XMFLOAT3(-0.5f,  0.5f, -0.5f), DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f) }, // 1
+        { DirectX::XMFLOAT3( 0.5f,  0.5f, -0.5f), DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f) }, // 2
+        { DirectX::XMFLOAT3( 0.5f, -0.5f, -0.5f), DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f) }, // 3
+        { DirectX::XMFLOAT3(-0.5f, -0.5f,  0.5f), DirectX::XMFLOAT4(1.0f, 0.0f, 1.0f, 1.0f) }, // 4
+        { DirectX::XMFLOAT3(-0.5f,  0.5f,  0.5f), DirectX::XMFLOAT4(0.0f, 1.0f, 1.0f, 1.0f) }, // 5
+        { DirectX::XMFLOAT3( 0.5f,  0.5f,  0.5f), DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) }, // 6
+        { DirectX::XMFLOAT3( 0.5f, -0.5f,  0.5f), DirectX::XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f) }  // 7
     };
     D3D11_BUFFER_DESC bd = {};
     bd.Usage = D3D11_USAGE_DEFAULT;
     bd.ByteWidth = sizeof(Vertex) * ARRAYSIZE(vertices);
     bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-    ThrowIfFailed(m_device->CreateBuffer(&bd, new D3D11_SUBRESOURCE_DATA{ vertices, 0, 0 }, &m_vertexBuffer));
+    D3D11_SUBRESOURCE_DATA sd = {vertices, 0, 0};
+    ThrowIfFailed(m_device->CreateBuffer(&bd, &sd, &m_vertexBuffer));
+
+    // Create Index Buffer
+    unsigned int indices[] =
+    {
+        0, 1, 2,  0, 2, 3, // Front Face
+        4, 6, 5,  4, 7, 6, // Back Face
+        1, 5, 6,  1, 6, 2, // Top Face
+        0, 3, 7,  0, 7, 4, // Bottom Face
+        4, 5, 1,  4, 1, 0, // Left Face
+        3, 2, 6,  3, 6, 7  // Right Face
+    };
+    D3D11_BUFFER_DESC ibd = {};
+    ibd.Usage = D3D11_USAGE_DEFAULT;
+    ibd.ByteWidth = sizeof(unsigned int) * ARRAYSIZE(indices);
+    ibd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    D3D11_SUBRESOURCE_DATA isd = {indices, 0, 0};
+    ThrowIfFailed(m_device->CreateBuffer(&ibd, &isd, &m_indexBuffer));
 
     // Create Constant Buffer
     D3D11_BUFFER_DESC cbd = {};
@@ -175,7 +199,7 @@ void Graphics::RenderFrame()
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
 
     // Update rotation
-    m_rotation += 0.005f;
+    m_rotation += 0.002f;
     if (m_rotation > 6.28f) m_rotation = 0.0f;
 
     // Update matrices
@@ -194,11 +218,16 @@ void Graphics::RenderFrame()
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
-    m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), new UINT{ sizeof(Vertex) }, new UINT{ 0 });
+    
+    UINT stride = sizeof(Vertex);
+    UINT offset = 0;
+    m_deviceContext->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);
+    m_deviceContext->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
+    
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-    // Draw the triangle
-    m_deviceContext->Draw(3, 0);
+    // Draw the cube
+    m_deviceContext->DrawIndexed(36, 0, 0);
 
     // Present the frame
     ThrowIfFailed(m_swapChain->Present(1, 0));
