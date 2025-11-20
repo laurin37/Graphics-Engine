@@ -19,6 +19,7 @@ struct CB_VS_vertexshader
     DirectX::XMFLOAT4X4 worldMatrix;
     DirectX::XMFLOAT4X4 viewMatrix;
     DirectX::XMFLOAT4X4 projectionMatrix;
+    DirectX::XMFLOAT4X4 lightViewProjMatrix;
 };
 
 // Constant buffer for pixel shader (per-frame data)
@@ -32,6 +33,8 @@ struct CB_PS_Frame
 class Graphics
 {
 public:
+    const int SHADOW_MAP_SIZE = 2048;
+
     Graphics();
     ~Graphics() = default;
 
@@ -45,6 +48,8 @@ public:
 
 private:
     void InitPipeline();
+    void RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& gameObjects, DirectX::XMMATRIX& outLightView, DirectX::XMMATRIX& outLightProj);
+    void RenderMainPass(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects, const DirectX::XMMATRIX& lightViewProj);
 
     // Core D3D objects
     Microsoft::WRL::ComPtr<ID3D11Device> m_device;
@@ -68,6 +73,15 @@ private:
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_textureView;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
     
+    // Shadow Mapping objects
+    Microsoft::WRL::ComPtr<ID3D11Texture2D> m_shadowMapTexture;
+    Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_shadowDSV;
+    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowSRV;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_shadowSampler;
+    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_shadowVS;
+    Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbShadowMatrix;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_shadowRS;
+
     // Scene Assets
     std::unique_ptr<Mesh> m_meshAsset;
 

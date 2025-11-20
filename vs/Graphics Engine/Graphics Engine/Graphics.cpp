@@ -9,34 +9,57 @@
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 
+const char* shadowVertexShaderSource = R"(
+    cbuffer LightMatrixBuffer : register(b0)
+    {
+        matrix lightWVP;
+    }
+
+    // Only need position for depth pass
+    float4 main(float3 pos : POSITION) : SV_POSITION
+    {
+        return mul(float4(pos, 1.0f), lightWVP);
+    }
+)";
+
 const char* vertexShaderSource = R"(
     cbuffer ConstantBuffer : register(b0)
     {
         matrix worldMatrix;
         matrix viewMatrix;
         matrix projectionMatrix;
+        matrix lightViewProjMatrix;
     }
     struct VS_INPUT { float3 pos : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; };
-    struct PS_INPUT { float4 pos : SV_POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 worldPos : WORLD_POS; };
+    struct PS_INPUT { 
+        float4 pos : SV_POSITION; 
+        float2 uv : TEXCOORD; 
+        float3 normal : NORMAL; 
+        float3 worldPos : WORLD_POS;
+        float4 lightSpacePos : TEXCOORD1;
+    };
 
     PS_INPUT main(VS_INPUT input)
     {
         PS_INPUT output;
-        float4 pos = float4(input.pos, 1.0f);
-        output.worldPos = mul(pos, worldMatrix).xyz;
-        pos = mul(pos, worldMatrix);
-        pos = mul(pos, viewMatrix);
-        pos = mul(pos, projectionMatrix);
-        output.pos = pos;
+        float4 worldPos = mul(float4(input.pos, 1.0f), worldMatrix);
+        output.worldPos = worldPos.xyz;
+        
+        output.pos = mul(worldPos, viewMatrix);
+        output.pos = mul(output.pos, projectionMatrix);
+        
         output.normal = normalize(mul(input.normal, (float3x3)worldMatrix));
         output.uv = input.uv;
+        output.lightSpacePos = mul(worldPos, lightViewProjMatrix);
         return output;
     }
 )";
 
 const char* pixelShaderSource = R"(
-    Texture2D proceduralTexture : register(t0);
-    SamplerState pointSampler : register(s0);
+    Texture2D g_texture : register(t0);
+    Texture2D g_shadowMap : register(t1);
+    SamplerState g_sampler : register(s0);
+    SamplerComparisonState g_shadowSampler : register(s1);
 
     cbuffer FrameData : register(b0)
     {
@@ -52,14 +75,34 @@ const char* pixelShaderSource = R"(
         float specularPower;
     }
 
-    struct PS_INPUT { float4 pos : SV_POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 worldPos : WORLD_POS; };
+    struct PS_INPUT { 
+        float4 pos : SV_POSITION; 
+        float2 uv : TEXCOORD; 
+        float3 normal : NORMAL; 
+        float3 worldPos : WORLD_POS;
+        float4 lightSpacePos : TEXCOORD1;
+    };
 
     float4 main(PS_INPUT input) : SV_TARGET
     {
-        float4 texColor = proceduralTexture.Sample(pointSampler, input.uv);
+        float4 texColor = g_texture.Sample(g_sampler, input.uv);
         float3 litColor = texColor.rgb * surfaceColor.rgb;
         
-        float ambient = 0.15f; // Slightly higher ambient
+        // Shadow calculation
+        float shadowFactor = 1.0;
+        // Projective texturing
+        float3 projCoords = input.lightSpacePos.xyz / input.lightSpacePos.w;
+        // Transform from [-1, 1] to [0, 1] texture coord range
+        projCoords.x = projCoords.x * 0.5 + 0.5;
+        projCoords.y = projCoords.y * -0.5 + 0.5;
+        
+        if (saturate(projCoords.z) > 0.0 && saturate(projCoords.x) > 0.0 && saturate(projCoords.y) > 0.0)
+        {
+            shadowFactor = g_shadowMap.SampleCmpLevelZero(g_shadowSampler, projCoords.xy, projCoords.z - 0.0005f);
+        }
+
+        // Lighting
+        float ambient = 0.15f;
         float diffuse = saturate(dot(input.normal, -lightDir.xyz));
         float3 diffuseColor = litColor * (diffuse * lightColor.rgb + ambient);
 
@@ -68,7 +111,8 @@ const char* pixelShaderSource = R"(
         float spec = pow(saturate(dot(input.normal, halfVector)), specularPower);
         float3 specColor = specularIntensity * spec * lightColor.rgb;
 
-        float3 finalColor = diffuseColor + specColor;
+        // Final color
+        float3 finalColor = diffuseColor * shadowFactor + specColor * shadowFactor;
         return float4(finalColor, texColor.a);
     }
 )";
@@ -114,16 +158,7 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
     depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
     ThrowIfFailed(m_device->CreateTexture2D(&depthStencilDesc, nullptr, &m_depthStencilBuffer));
     ThrowIfFailed(m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, &m_depthStencilView));
-
-    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
-
-    D3D11_VIEWPORT vp = {};
-    vp.Width = static_cast<float>(width);
-    vp.Height = static_cast<float>(height);
-    vp.MinDepth = 0.0f;
-    vp.MaxDepth = 1.0f;
-    m_deviceContext->RSSetViewports(1, &vp);
-
+    
     InitPipeline();
 
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
@@ -133,7 +168,7 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
 void Graphics::InitPipeline()
 {
-    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob, pixelShaderBlob, errorBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob, pixelShaderBlob, errorBlob, shadowVSBlob;
     
     HRESULT hr = D3DCompile(vertexShaderSource, strlen(vertexShaderSource), "VertexShader", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexShaderBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
@@ -149,6 +184,10 @@ void Graphics::InitPipeline()
     hr = D3DCompile(pixelShaderSource, strlen(pixelShaderSource), "PixelShader", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShaderBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
+    
+    hr = D3DCompile(shadowVertexShaderSource, strlen(shadowVertexShaderSource), "ShadowVS", nullptr, nullptr, "main", "vs_5_0", 0, 0, &shadowVSBlob, &errorBlob);
+    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("Shadow VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
+    ThrowIfFailed(m_device->CreateVertexShader(shadowVSBlob->GetBufferPointer(), shadowVSBlob->GetBufferSize(), nullptr, &m_shadowVS));
 
     std::vector<Vertex> vertices = {
         { {-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} }, { {-0.5f,  0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f,  0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f} }, { { 0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f} },
@@ -173,6 +212,9 @@ void Graphics::InitPipeline()
 
     cbd.ByteWidth = sizeof(CBuffer_PS_Material);
     ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_psMaterialConstantBuffer));
+    
+    cbd.ByteWidth = sizeof(DirectX::XMMATRIX);
+    ThrowIfFailed(m_device->CreateBuffer(&cbd, nullptr, &m_cbShadowMatrix));
 
     const int texWidth = 64, texHeight = 64;
     std::vector<uint32_t> texData(texWidth * texHeight);
@@ -201,6 +243,48 @@ void Graphics::InitPipeline()
     sampDesc.MinLOD = 0;
     sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
     ThrowIfFailed(m_device->CreateSamplerState(&sampDesc, &m_samplerState));
+
+    D3D11_TEXTURE2D_DESC shadowMapDesc = {};
+    shadowMapDesc.Width = SHADOW_MAP_SIZE;
+    shadowMapDesc.Height = SHADOW_MAP_SIZE;
+    shadowMapDesc.MipLevels = 1;
+    shadowMapDesc.ArraySize = 1;
+    shadowMapDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    shadowMapDesc.SampleDesc.Count = 1;
+    shadowMapDesc.Usage = D3D11_USAGE_DEFAULT;
+    shadowMapDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+    ThrowIfFailed(m_device->CreateTexture2D(&shadowMapDesc, nullptr, &m_shadowMapTexture));
+
+    D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+    dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+    dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+    ThrowIfFailed(m_device->CreateDepthStencilView(m_shadowMapTexture.Get(), &dsvDesc, &m_shadowDSV));
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    ThrowIfFailed(m_device->CreateShaderResourceView(m_shadowMapTexture.Get(), &srvDesc, &m_shadowSRV));
+
+    D3D11_SAMPLER_DESC shadowSampDesc = {};
+    shadowSampDesc.Filter = D3D11_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+    shadowSampDesc.ComparisonFunc = D3D11_COMPARISON_LESS_EQUAL;
+    shadowSampDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSampDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSampDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
+    shadowSampDesc.BorderColor[0] = 1.0f;
+    shadowSampDesc.BorderColor[1] = 1.0f;
+    shadowSampDesc.BorderColor[2] = 1.0f;
+    shadowSampDesc.BorderColor[3] = 1.0f;
+    ThrowIfFailed(m_device->CreateSamplerState(&shadowSampDesc, &m_shadowSampler));
+    
+    D3D11_RASTERIZER_DESC rsDesc = {};
+    rsDesc.FillMode = D3D11_FILL_SOLID;
+    rsDesc.CullMode = D3D11_CULL_BACK;
+    rsDesc.DepthClipEnable = true;
+    rsDesc.DepthBias = 10000;
+    rsDesc.SlopeScaledDepthBias = 1.0f;
+    ThrowIfFailed(m_device->CreateRasterizerState(&rsDesc, &m_shadowRS));
 }
 
 Mesh* Graphics::GetMeshAsset() const
@@ -210,6 +294,67 @@ Mesh* Graphics::GetMeshAsset() const
 
 void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects)
 {
+    DirectX::XMMATRIX lightView, lightProj;
+    RenderShadowPass(gameObjects, lightView, lightProj);
+    RenderMainPass(camera, gameObjects, lightView * lightProj);
+    ThrowIfFailed(m_swapChain->Present(1, 0));
+}
+
+void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& gameObjects, DirectX::XMMATRIX& outLightView, DirectX::XMMATRIX& outLightProj)
+{
+    m_deviceContext->RSSetState(m_shadowRS.Get());
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(SHADOW_MAP_SIZE);
+    vp.Height = static_cast<float>(SHADOW_MAP_SIZE);
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    m_deviceContext->RSSetViewports(1, &vp);
+
+    m_deviceContext->OMSetRenderTargets(0, nullptr, m_shadowDSV.Get());
+    m_deviceContext->ClearDepthStencilView(m_shadowDSV.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+    DirectX::XMVECTOR lightPos = DirectX::XMVectorSet(20.0f, 20.0f, -20.0f, 0.0f);
+    DirectX::XMVECTOR lightTarget = DirectX::XMVectorZero();
+    outLightView = DirectX::XMMatrixLookAtLH(lightPos, lightTarget, { 0.0f, 1.0f, 0.0f, 0.0f });
+    outLightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.1f, 100.0f);
+
+    m_deviceContext->VSSetShader(m_shadowVS.Get(), nullptr, 0);
+    m_deviceContext->PSSetShader(nullptr, nullptr, 0);
+    m_deviceContext->IASetInputLayout(m_inputLayout.Get());
+    m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    for (const auto& pGameObject : gameObjects)
+    {
+        DirectX::XMMATRIX worldMatrix = pGameObject->GetWorldMatrix();
+        DirectX::XMMATRIX wvp = worldMatrix * outLightView * outLightProj;
+        
+        DirectX::XMMATRIX wvpT = DirectX::XMMatrixTranspose(wvp);
+        m_deviceContext->UpdateSubresource(m_cbShadowMatrix.Get(), 0, nullptr, &wvpT, 0, 0);
+        m_deviceContext->VSSetConstantBuffers(0, 1, m_cbShadowMatrix.GetAddressOf());
+
+        pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
+    }
+}
+
+void Graphics::RenderMainPass(Camera* camera, const std::vector<std::unique_ptr<GameObject>>& gameObjects, const DirectX::XMMATRIX& lightViewProj)
+{
+    // Get window size to set viewport
+    D3D11_TEXTURE2D_DESC backBufferDesc;
+    Microsoft::WRL::ComPtr<ID3D11Resource> backBuffer;
+    m_swapChain->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer);
+    ((ID3D11Texture2D*)backBuffer.Get())->GetDesc(&backBufferDesc);
+
+    D3D11_VIEWPORT vp = {};
+    vp.Width = static_cast<float>(backBufferDesc.Width);
+    vp.Height = static_cast<float>(backBufferDesc.Height);
+    vp.MinDepth = 0.0f;
+    vp.MaxDepth = 1.0f;
+    m_deviceContext->RSSetViewports(1, &vp);
+
+    m_deviceContext->RSSetState(nullptr);
+
+    m_deviceContext->OMSetRenderTargets(1, m_renderTargetView.GetAddressOf(), m_depthStencilView.Get());
     const float clearColor[] = { 0.0f, 0.2f, 0.4f, 1.0f };
     m_deviceContext->ClearRenderTargetView(m_renderTargetView.Get(), clearColor);
     m_deviceContext->ClearDepthStencilView(m_depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -224,7 +369,10 @@ void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<Gam
 
     m_deviceContext->PSSetConstantBuffers(0, 1, m_psFrameConstantBuffer.GetAddressOf());
     m_deviceContext->PSSetShaderResources(0, 1, m_textureView.GetAddressOf());
+    m_deviceContext->PSSetShaderResources(1, 1, m_shadowSRV.GetAddressOf());
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
+    m_deviceContext->PSSetSamplers(1, 1, m_shadowSampler.GetAddressOf());
+
     m_deviceContext->IASetInputLayout(m_inputLayout.Get());
     m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
     m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
@@ -238,12 +386,11 @@ void Graphics::RenderFrame(Camera* camera, const std::vector<std::unique_ptr<Gam
         DirectX::XMStoreFloat4x4(&vs_cb.worldMatrix, DirectX::XMMatrixTranspose(worldMatrix));
         DirectX::XMStoreFloat4x4(&vs_cb.viewMatrix, DirectX::XMMatrixTranspose(viewMatrix));
         DirectX::XMStoreFloat4x4(&vs_cb.projectionMatrix, DirectX::XMMatrixTranspose(m_projectionMatrix));
+        DirectX::XMStoreFloat4x4(&vs_cb.lightViewProjMatrix, DirectX::XMMatrixTranspose(lightViewProj));
         m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
         
         m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
 
         pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
     }
-
-    ThrowIfFailed(m_swapChain->Present(1, 0));
 }
