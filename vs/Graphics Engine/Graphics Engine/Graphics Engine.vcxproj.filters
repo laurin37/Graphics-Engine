@@ -54,6 +54,9 @@
     <ClCompile Include="Shader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="Skybox.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -95,6 +98,9 @@
     <ClInclude Include="Shader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="Skybox.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Models\interieur.obj" />
@@ -112,6 +118,7 @@
     <None Include="Assets\Models\basic\cone.obj" />
     <None Include="Shaders\Shadow.hlsl" />
     <None Include="Shaders\Standard.hlsl" />
+    <None Include="Shaders\Skybox.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg">
@@ -136,6 +143,12 @@
       <Filter>Ressourcendateien</Filter>
     </Image>
     <Image Include="Assets\Textures\snow_02_translucent_4k.png">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\sky2.jpg">
+      <Filter>Ressourcendateien</Filter>
+    </Image>
+    <Image Include="Assets\Textures\sky.jpg">
       <Filter>Ressourcendateien</Filter>
     </Image>
   </ItemGroup>

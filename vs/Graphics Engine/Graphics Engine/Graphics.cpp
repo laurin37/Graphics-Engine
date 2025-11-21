@@ -4,6 +4,7 @@
 #include "Camera.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "Skybox.h"
 #include <vector>
 #include <string>
 
@@ -82,6 +83,8 @@ Graphics::Graphics()
 {
 }
 
+Graphics::~Graphics() = default;
+
 void Graphics::Initialize(HWND hwnd, int width, int height)
 {
     m_screenWidth = static_cast<float>(width);
@@ -126,6 +129,9 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
     ThrowIfFailed(m_device->CreateDepthStencilView(m_depthStencilBuffer.Get(), nullptr, &m_depthStencilView));
 
     InitPipeline();
+
+    m_skybox = std::make_unique<Skybox>();
+    m_skybox->Init(m_device.Get(), m_deviceContext.Get(), L"Assets/Textures/sky.jpg");
 
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
         DirectX::XM_PIDIV4, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f
@@ -482,8 +488,12 @@ void Graphics::RenderMainPass(
         DirectX::XMStoreFloat4x4(&vs_cb.lightViewProjMatrix, DirectX::XMMatrixTranspose(lightViewProj));
         m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
 
-        m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
-
         pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
+    }
+
+    // Draw Skybox
+    if (m_skybox)
+    {
+        m_skybox->Draw(m_deviceContext.Get(), *camera, m_projectionMatrix);
     }
 }

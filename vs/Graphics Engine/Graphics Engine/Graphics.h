@@ -13,6 +13,7 @@
 class Mesh;
 class Camera;
 class GameObject;
+class Skybox;
 
 // --- Lighting Structs ---
 struct DirectionalLight
@@ -67,7 +68,7 @@ public:
     const int SHADOW_MAP_SIZE = 2048;
 
     Graphics();
-    ~Graphics() = default;
+    ~Graphics();
 
     Graphics(const Graphics&) = delete;
     Graphics& operator=(const Graphics&) = delete;
@@ -149,6 +150,7 @@ private:
 
     // Scene Assets
     std::unique_ptr<Mesh> m_meshAsset;
+    std::unique_ptr<Skybox> m_skybox;
 
     // Matrices
     DirectX::XMMATRIX m_projectionMatrix;

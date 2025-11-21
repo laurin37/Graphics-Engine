@@ -138,6 +138,7 @@
     <ClCompile Include="ModelLoader.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SimpleFont.cpp" />
+    <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="Window.cpp" />
   </ItemGroup>
@@ -153,6 +154,7 @@
     <ClInclude Include="ModelLoader.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="SimpleFont.h" />
+    <ClInclude Include="Skybox.h" />
     <ClInclude Include="TextureLoader.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
@@ -192,10 +194,12 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Assets\Textures\sky.jpg" />
     <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg" />
     <Image Include="Assets\Textures\blue_metal_plate_disp_4k.png" />
     <Image Include="Assets\Textures\pine_bark_diff_4k.jpg" />
     <Image Include="Assets\Textures\pine_bark_disp_4k.png" />
+    <Image Include="Assets\Textures\sky2.jpg" />
     <Image Include="Assets\Textures\snow_02_diff_4k.jpg" />
     <Image Include="Assets\Textures\snow_02_disp_4k.png" />
     <Image Include="Assets\Textures\snow_02_rough_4k.jpg" />
@@ -206,6 +210,11 @@
       <FileType>Document</FileType>
     </None>
     <None Include="Shaders\Standard.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Skybox.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
