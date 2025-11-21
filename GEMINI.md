@@ -8,7 +8,7 @@ Tech Stack & Constraints
 
 Language: C++23 (Standard ISO C++).
 
-Graphics API: Direct3D 11 (Feature Level 11_0) initially, with architecture designed to support D3D12 later.
+Graphics API: Direct3D 11 (Feature Level 11_0). Architecture is designed to support future migration to D3D12.
 
 OS API: Win32 API (No external windowing libraries like GLFW/SDL).
 
@@ -17,6 +17,14 @@ Math Library: DirectXMath (<DirectXMath.h>).
 Shader Language: HLSL (Shader Model 5.0).
 
 IDE/Compiler: Visual Studio 2026 (MSVC).
+
+Asset Loading:
+
+Models: Custom OBJ Parser (supports positions, UVs, normals).
+
+Textures: Native WIC (Windows Imaging Component).
+
+Fonts: Custom 2D Sprite Batch (Bitmap Fonts).
 
 Architectural Guidelines
 
@@ -52,50 +60,121 @@ Headers: Use #pragma once.
 
 4. Application Structure
 
-Window Class: Encapsulates the HWND, message loop (WndProc), and window creation.
+Game Class: The main entry point. Owns the Window, Graphics, Input, Camera, and Scene Data (GameObjects). Contains the main loop (Run, Update, Render).
 
-Graphics Class: Encapsulates the Device, Context, SwapChain, and RenderTargetView.
+Graphics Class: The Renderer. Owns Device, Context, SwapChain. Handles the rendering pipeline (Shadow Pass -> Main Pass -> UI Pass). It should not own game logic.
 
-Game Class: The main entry point containing the specific logic, owning the Window and Graphics instances.
+GameObject Class: Represents an entity in the world. Has a Transform (Pos/Rot/Scale), a Mesh*, and a Material.
 
-Development Phase: Initialization
+Input Class: Abstracts Win32 raw input into IsKeyDown and Mouse Delta queries.
 
-We are currently in the setup phase. The immediate goals are:
+Shader Classes: VertexShader and PixelShader wrappers that handle compilation and binding.
 
-Setting up a clean Win32 Window Class.
+Current Features (Implemented)
 
-Initializing the Direct3D 11 Device and SwapChain.
+Rendering:
 
-Clearing the screen to a solid color (Deep Blue).
+Forward Rendering Pipeline.
 
-Common Snippet Patterns to Use
+Blinn-Phong Lighting Model (Diffuse + Specular + Ambient).
+
+Normal Mapping (Tangent Space).
+
+Dynamic Point Lights (with attenuation) + Directional Light.
+
+Soft Shadows (PCF 3x3) via Shadow Mapping.
+
+Skybox Rendering (Cube Map simulation).
+
+Systems:
+
+First-Person Camera (WASD + Mouse Look).
+
+Asset Loading (OBJ Models, WIC Textures).
+
+2D UI Overlay (Custom Sprite Font).
+
+Material System (Support for Textures and Properties).
+
+Roadmap: Future Goals
+
+Phase 1: Visual Polish (Post-Processing)
+
+Goal: Implement a Post-Processing pipeline.
+
+Features:
+
+Render Scene to Off-Screen Texture (RTT).
+
+Full-screen Quad rendering.
+
+Bloom (Gaussian Blur + Threshold).
+
+Tone Mapping (ACES/Reinhard).
+
+Gamma Correction.
+
+Phase 2: Physics & Collision
+
+Goal: Implement basic gameplay physics.
+
+Features:
+
+AABB (Axis-Aligned Bounding Box) generation for meshes.
+
+Sphere-Box and Box-Box intersection tests.
+
+Simple collision response (stop player from walking through walls).
+
+Phase 3: Architecture Scalability
+
+Goal: Move from hardcoded initialization to data-driven design.
+
+Features:
+
+ResourceManager: Prevent duplicate asset loading. Cache textures/meshes by filename.
+
+Scene File: Load level layout (positions, lights) from a JSON or text file instead of C++ code.
+
+Phase 4: Advanced Rendering
+
+Goal: Push visual fidelity.
+
+Features:
+
+Deferred Rendering (Support 100+ lights).
+
+PBR (Physically Based Rendering) Shaders.
+
+Screen Space Ambient Occlusion (SSAO).
+
+Common Snippet Patterns
 
 Win32 Main Entry:
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
-    // Logic here
+    try {
+        Game game;
+        if (game.Initialize(hInstance, nCmdShow)) game.Run();
+    } catch (const std::exception& e) {
+        MessageBoxA(nullptr, e.what(), "Error", MB_OK);
+    }
+    return 0;
 }
 
 
 ThrowIfFailed Helper:
 
 inline void ThrowIfFailed(HRESULT hr) {
-    if (FAILED(hr)) {
-        throw std::exception("DirectX Error");
-    }
+    if (FAILED(hr)) { throw std::runtime_error("DirectX Error"); }
 }
 
 
 Vertex Struct:
 
 struct Vertex {
-    DirectX::XMFLOAT3 position;
-    DirectX::XMFLOAT4 color;
+    DirectX::XMFLOAT3 pos;
+    DirectX::XMFLOAT2 uv;
+    DirectX::XMFLOAT3 normal;
+    DirectX::XMFLOAT3 tangent;
 };
-
-
-Excluded Libraries
-
-Do not use: GLM, GLFW, GLUT, SDL2, or raw standard arrays (use std::vector).
-
-Always update README.md and .gitignore if necessary.
