@@ -20,6 +20,8 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
     {
         m_window.Initialize(hInstance, nCmdShow, L"GeminiDX Engine", L"GeminiDXWindowClass", WINDOW_WIDTH, WINDOW_HEIGHT);
         m_graphics.Initialize(m_window.GetHWND(), WINDOW_WIDTH, WINDOW_HEIGHT);
+        m_renderer = std::make_unique<Renderer>();
+        m_renderer->Initialize(&m_graphics, WINDOW_WIDTH, WINDOW_HEIGHT);
         m_input.Initialize(m_window.GetHWND());
 
         // 1. Camera Setup
@@ -50,11 +52,11 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
 
 
         // 3. Load Basic Assets
-        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice(), "Assets/Models/basic/cube.obj"));
-        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice(), "Assets/Models/basic/cylinder.obj"));
-        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice(), "Assets/Models/basic/cone.obj"));
-        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice(), "Assets/Models/basic/sphere.obj"));
-        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice(), "Assets/Models/basic/torus.obj"));
+        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice().Get(), "Assets/Models/basic/cube.obj"));
+        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice().Get(), "Assets/Models/basic/cylinder.obj"));
+        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice().Get(), "Assets/Models/basic/cone.obj"));
+        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice().Get(), "Assets/Models/basic/sphere.obj"));
+        m_meshAssets.push_back(ModelLoader::Load(m_graphics.GetDevice().Get(), "Assets/Models/basic/torus.obj"));
 
         Mesh* meshCube = m_meshAssets[0].get();
         Mesh* meshCylinder = m_meshAssets[1].get();
@@ -63,15 +65,15 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
         Mesh* meshTorus = m_meshAssets[4].get();
 
         // 4. Load Textures
-        auto texWood = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/pine_bark_diff_4k.jpg");
-        auto normWood = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/pine_bark_disp_4k.png");
-        auto texMetal = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/blue_metal_plate_diff_4k.jpg");
-        auto normMetal = TextureLoader::Load(m_graphics.GetDevice(), m_graphics.GetContext(), L"Assets/Textures/blue_metal_plate_disp_4k.png");
+        auto texWood = TextureLoader::Load(m_graphics.GetDevice().Get(), m_graphics.GetContext().Get(), L"Assets/Textures/pine_bark_diff_4k.jpg");
+        auto normWood = TextureLoader::Load(m_graphics.GetDevice().Get(), m_graphics.GetContext().Get(), L"Assets/Textures/pine_bark_disp_4k.png");
+        auto texMetal = TextureLoader::Load(m_graphics.GetDevice().Get(), m_graphics.GetContext().Get(), L"Assets/Textures/blue_metal_plate_diff_4k.jpg");
+        auto normMetal = TextureLoader::Load(m_graphics.GetDevice().Get(), m_graphics.GetContext().Get(), L"Assets/Textures/blue_metal_plate_disp_4k.png");
 
         // --- GENERATE DEBUG FONT ---
         // We create a font texture in memory so you don't need external files.
         // This will replace the "Wood" fallback and actually show digits.
-        auto debugFontTex = TextureLoader::CreateDebugFont(m_graphics.GetDevice(), m_graphics.GetContext());
+        auto debugFontTex = TextureLoader::CreateDebugFont(m_graphics.GetDevice().Get(), m_graphics.GetContext().Get());
         m_font.Initialize(debugFontTex);
 
         // 5. Create Materials
@@ -204,14 +206,14 @@ void Game::Update(float deltaTime)
 
 void Game::Render()
 {
-    m_graphics.RenderFrame(m_camera.get(), m_gameObjects, m_dirLight, m_pointLights);
+    m_renderer->RenderFrame(*m_camera, m_gameObjects, m_dirLight, m_pointLights);
 
-    m_graphics.EnableUIState();
+    //m_graphics.EnableUIState();
 
-    float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    m_font.DrawString(m_graphics, "FPS: " + std::to_string(m_fps), 10.0f, 10.0f, 30.0f, color);
+    //float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    //m_font.DrawString(m_graphics, "FPS: " + std::to_string(m_fps), 10.0f, 10.0f, 30.0f, color);
 
-    m_graphics.DisableUIState();
+    //m_graphics.DisableUIState();
 
     m_graphics.Present();
 }

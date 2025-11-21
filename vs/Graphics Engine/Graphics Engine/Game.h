@@ -3,6 +3,7 @@
 #include "Window.h"
 #include "Graphics.h"
 #include "Input.h"
+#include "Renderer.h"
 #include "Camera.h"
 #include "GameObject.h"
 #include "Mesh.h" // Added to support vector<unique_ptr<Mesh>>
@@ -26,6 +27,7 @@ private:
 
     Window m_window;
     Graphics m_graphics;
+    std::unique_ptr<Renderer> m_renderer;
     Input m_input;
     SimpleFont m_font; // UI Font
 

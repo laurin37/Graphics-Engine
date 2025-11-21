@@ -38,6 +38,12 @@ void PostProcess::Init(ID3D11Device* device, int width, int height)
     sampDesc.MinLOD = 0;
     sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
     ThrowIfFailed(device->CreateSamplerState(&sampDesc, &m_sampler));
+
+    // 4. Create Rasterizer State
+    D3D11_RASTERIZER_DESC rsDesc = {};
+    rsDesc.FillMode = D3D11_FILL_SOLID;
+    rsDesc.CullMode = D3D11_CULL_NONE;
+    ThrowIfFailed(device->CreateRasterizerState(&rsDesc, &m_rsState));
 }
 
 void PostProcess::Bind(ID3D11DeviceContext* context, ID3D11DepthStencilView* dsv)
@@ -60,6 +66,9 @@ void PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* bac
     const float clearColor[] = { 0.0f, 0.0f, 0.0f, 1.0f };
     context->ClearRenderTargetView(backBufferRTV, clearColor);
 
+    // Set states
+    context->RSSetState(m_rsState.Get());
+
     // Bind the off-screen texture as a shader resource
     context->PSSetShaderResources(0, 1, m_offScreenSRV.GetAddressOf());
     context->PSSetSamplers(0, 1, m_sampler.GetAddressOf());
@@ -72,7 +81,8 @@ void PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* bac
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->Draw(3, 0);
 
-    // Unbind the shader resource to avoid warnings
+    // Unbind the shader resource and reset states
     ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
     context->PSSetShaderResources(0, 1, nullSRV);
+    context->RSSetState(nullptr);
 }

@@ -10,6 +10,7 @@ struct ID3D11RenderTargetView;
 struct ID3D11ShaderResourceView;
 struct ID3D11DepthStencilView;
 struct ID3D11SamplerState;
+struct ID3D11RasterizerState;
 class VertexShader;
 class PixelShader;
 
@@ -33,4 +34,5 @@ private:
     std::unique_ptr<VertexShader> m_vs;
     std::unique_ptr<PixelShader> m_ps;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler; // Sampler for the scene texture.
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rsState;
 };
