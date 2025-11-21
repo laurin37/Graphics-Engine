@@ -136,6 +136,7 @@
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="Mesh.cpp" />
     <ClCompile Include="ModelLoader.cpp" />
+    <ClCompile Include="Shader.cpp" />
     <ClCompile Include="SimpleFont.cpp" />
     <ClCompile Include="TextureLoader.cpp" />
     <ClCompile Include="Window.cpp" />
@@ -150,6 +151,7 @@
     <ClInclude Include="Material.h" />
     <ClInclude Include="Mesh.h" />
     <ClInclude Include="ModelLoader.h" />
+    <ClInclude Include="Shader.h" />
     <ClInclude Include="SimpleFont.h" />
     <ClInclude Include="TextureLoader.h" />
     <ClInclude Include="Window.h" />
@@ -198,6 +200,14 @@
     <Image Include="Assets\Textures\snow_02_disp_4k.png" />
     <Image Include="Assets\Textures\snow_02_rough_4k.jpg" />
     <Image Include="Assets\Textures\snow_02_translucent_4k.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\Shadow.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Shaders\Standard.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

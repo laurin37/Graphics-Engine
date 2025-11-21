@@ -7,6 +7,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include <vector>
+#include "Shader.h"
 
 // Forward Declarations
 class Mesh;
@@ -115,9 +116,9 @@ private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_depthStencilBuffer;
 
     // Pipeline objects
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_vertexShader;
-    Microsoft::WRL::ComPtr<ID3D11PixelShader> m_pixelShader;
-    Microsoft::WRL::ComPtr<ID3D11InputLayout> m_inputLayout;
+    std::unique_ptr<VertexShader> m_mainVS;
+    std::unique_ptr<PixelShader> m_mainPS;
+    std::unique_ptr<VertexShader> m_shadowVS;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_vsConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_psFrameConstantBuffer;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_psMaterialConstantBuffer;
@@ -131,7 +132,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_shadowDSV;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowSRV;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_shadowSampler;
-    Microsoft::WRL::ComPtr<ID3D11VertexShader> m_shadowVS;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbShadowMatrix;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_shadowRS;
 

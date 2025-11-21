@@ -3,6 +3,7 @@
 #include "GameObject.h"
 #include "Camera.h"
 #include "Mesh.h"
+#include "Material.h"
 #include <vector>
 #include <string>
 
@@ -73,186 +74,7 @@ const char* uiPixelShaderSource = R"(
     }
 )";
 
-const char* shadowVertexShaderSource = R"(
-    cbuffer LightMatrixBuffer : register(b0)
-    {
-        matrix lightWVP;
-    }
 
-    // Only need position for depth pass
-    float4 main(float3 pos : POSITION) : SV_POSITION
-    {
-        return mul(float4(pos, 1.0f), lightWVP);
-    }
-)";
-
-const char* vertexShaderSource = R"(
-    cbuffer ConstantBuffer : register(b0)
-    {
-        matrix worldMatrix;
-        matrix viewMatrix;
-        matrix projectionMatrix;
-        matrix lightViewProjMatrix;
-    }
-    struct VS_INPUT { float3 pos : POSITION; float2 uv : TEXCOORD; float3 normal : NORMAL; float3 tangent : TANGENT; };
-    struct PS_INPUT { 
-        float4 pos : SV_POSITION; 
-        float2 uv : TEXCOORD; 
-        float3 normal : NORMAL; 
-        float3 tangent : TANGENT;
-        float3 worldPos : WORLD_POS;
-        float4 lightSpacePos : TEXCOORD1;
-    };
-
-    PS_INPUT main(VS_INPUT input)
-    {
-        PS_INPUT output;
-        float4 worldPos = mul(float4(input.pos, 1.0f), worldMatrix);
-        output.worldPos = worldPos.xyz;
-        
-        output.pos = mul(worldPos, viewMatrix);
-        output.pos = mul(output.pos, projectionMatrix);
-        
-        output.normal = normalize(mul(input.normal, (float3x3)worldMatrix));
-        output.tangent = normalize(mul(input.tangent, (float3x3)worldMatrix));
-        output.uv = input.uv;
-        output.lightSpacePos = mul(worldPos, lightViewProjMatrix);
-        return output;
-    }
-)";
-
-const char* pixelShaderSource = R"(
-    Texture2D g_texture : register(t0);
-    Texture2D g_normalMap : register(t1);
-    Texture2D g_shadowMap : register(t2);
-
-    SamplerState g_sampler : register(s0);
-    SamplerComparisonState g_shadowSampler : register(s2);
-
-
-    cbuffer FrameData : register(b0)
-    {
-        // Directional Light
-        float4 dirLightDirection;
-        float4 dirLightColor;
-
-        // Point Lights
-        float4 pointLightPos[4];
-        float4 pointLightColor[4];
-        float4 pointLightAtt[4];
-
-        // Camera
-        float4 cameraPos;
-    }
-
-    cbuffer MaterialData : register(b1)
-    {
-        float4 surfaceColor;
-        float specularIntensity;
-        float specularPower;
-    }
-
-    struct PS_INPUT { 
-        float4 pos : SV_POSITION; 
-        float2 uv : TEXCOORD; 
-        float3 normal : NORMAL; 
-        float3 tangent : TANGENT;
-        float3 worldPos : WORLD_POS;
-        float4 lightSpacePos : TEXCOORD1;
-    };
-
-    float3 CalcLighting(float3 litColor, float3 pixelNormal, float3 lightVec, float3 lightColor, float3 viewDir, float specIntensity, float specPower)
-    {
-        float diffuseFactor = saturate(dot(pixelNormal, lightVec));
-        float3 diffuse = litColor * diffuseFactor * lightColor;
-        float3 halfVector = normalize(lightVec + viewDir);
-        float specFactor = pow(saturate(dot(pixelNormal, halfVector)), specPower);
-        float3 specular = specIntensity * specFactor * lightColor;
-        return diffuse + specular;
-    }
-
-
-    float4 main(PS_INPUT input) : SV_TARGET
-    {
-        float3 N = normalize(input.normal);
-        float3 T = normalize(input.tangent - dot(input.tangent, N) * N);
-        float3 B = cross(N, T);
-        float3x3 TBN = float3x3(T, B, N);
-        
-        float3 normalMapSample = g_normalMap.Sample(g_sampler, input.uv).rgb;
-        float3 pixelNormal;
-
-        if (normalMapSample.b < 0.2) 
-        {
-             float height = normalMapSample.r;
-             float dHdx = ddx(height);
-             float dHdy = ddy(height);
-             float3 dPdx = ddx(input.worldPos);
-             float3 dPdy = ddy(input.worldPos);
-             float3 surfGrad = (dHdx * dPdx + dHdy * dPdy) * 50.0f;
-             pixelNormal = normalize(N - surfGrad);
-        }
-        else
-        {
-             float3 tangentSpaceNormal = normalize(normalMapSample * 2.0 - 1.0);
-             pixelNormal = normalize(mul(tangentSpaceNormal, TBN));
-        }
-
-        float4 texColor = g_texture.Sample(g_sampler, input.uv);
-        float3 baseColor = texColor.rgb * surfaceColor.rgb;
-        
-        float shadowFactor = 0.0;
-        float3 projCoords = input.lightSpacePos.xyz / input.lightSpacePos.w;
-        projCoords.x = projCoords.x * 0.5 + 0.5;
-        projCoords.y = projCoords.y * -0.5 + 0.5;
-
-        float shadowBias = 0.0005f;
-        float texelSize = 1.0 / 2048.0;
-
-        if (saturate(projCoords.z) > 0.0 && saturate(projCoords.x) > 0.0 && saturate(projCoords.x) < 1.0 && saturate(projCoords.y) > 0.0 && saturate(projCoords.y) < 1.0)
-        {
-            [unroll]
-            for (int x = -1; x <= 1; ++x)
-            {
-                [unroll]
-                for (int y = -1; y <= 1; ++y)
-                {
-                    shadowFactor += g_shadowMap.SampleCmpLevelZero(g_shadowSampler, projCoords.xy + float2(x, y) * texelSize, projCoords.z - shadowBias);
-                }
-            }
-            shadowFactor /= 9.0;
-        }
-        else
-        {
-            shadowFactor = 1.0;
-        }
-        
-        float3 finalColor = float3(0, 0, 0);
-        float3 viewDir = normalize(cameraPos.xyz - input.worldPos);
-
-        finalColor += baseColor * 0.15f;
-
-        float3 dirLightContrib = CalcLighting(baseColor, pixelNormal, -dirLightDirection.xyz, dirLightColor.rgb * dirLightColor.a, viewDir, specularIntensity, specularPower);
-        finalColor += dirLightContrib * shadowFactor;
-
-        [unroll]
-        for (int i = 0; i < 4; ++i)
-        {
-            float3 lightVec = pointLightPos[i].xyz - input.worldPos;
-            float dist = length(lightVec);
-            
-            if (dist < pointLightPos[i].w)
-            {
-                lightVec = normalize(lightVec);
-                float3 pointLightContrib = CalcLighting(baseColor, pixelNormal, lightVec, pointLightColor[i].rgb * pointLightColor[i].a, viewDir, specularIntensity, specularPower);
-                float att = 1.0 / (pointLightAtt[i].x + pointLightAtt[i].y * dist + pointLightAtt[i].z * dist * dist);
-                finalColor += pointLightContrib * att;
-            }
-        }
-
-        return float4(finalColor, texColor.a);
-    }
-)";
 
 Graphics::Graphics()
     : m_projectionMatrix(DirectX::XMMatrixIdentity())
@@ -312,32 +134,29 @@ void Graphics::Initialize(HWND hwnd, int width, int height)
 
 void Graphics::InitPipeline()
 {
-    Microsoft::WRL::ComPtr<ID3DBlob> vertexShaderBlob, pixelShaderBlob, errorBlob, shadowVSBlob, uiVSBlob, uiPSBlob;
+    Microsoft::WRL::ComPtr<ID3DBlob> errorBlob, uiVSBlob, uiPSBlob;
 
     // --- 1. Main Shaders ---
-    HRESULT hr = D3DCompile(vertexShaderSource, strlen(vertexShaderSource), "VertexShader", nullptr, nullptr, "main", "vs_5_0", 0, 0, &vertexShaderBlob, &errorBlob);
-    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
-    ThrowIfFailed(m_device->CreateVertexShader(vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), nullptr, &m_vertexShader));
-
     D3D11_INPUT_ELEMENT_DESC inputLayoutDesc[] = {
         { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
-    ThrowIfFailed(m_device->CreateInputLayout(inputLayoutDesc, ARRAYSIZE(inputLayoutDesc), vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize(), &m_inputLayout));
 
-    hr = D3DCompile(pixelShaderSource, strlen(pixelShaderSource), "PixelShader", nullptr, nullptr, "main", "ps_5_0", 0, 0, &pixelShaderBlob, &errorBlob);
-    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("PS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
-    ThrowIfFailed(m_device->CreatePixelShader(pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize(), nullptr, &m_pixelShader));
+    m_mainVS = std::make_unique<VertexShader>();
+    m_mainVS->Init(m_device.Get(), L"Shaders/Standard.hlsl", "VS_main", inputLayoutDesc, ARRAYSIZE(inputLayoutDesc));
+
+    m_mainPS = std::make_unique<PixelShader>();
+    m_mainPS->Init(m_device.Get(), L"Shaders/Standard.hlsl", "PS_main");
 
     // --- 2. Shadow Shaders ---
-    hr = D3DCompile(shadowVertexShaderSource, strlen(shadowVertexShaderSource), "ShadowVS", nullptr, nullptr, "main", "vs_5_0", 0, 0, &shadowVSBlob, &errorBlob);
-    if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("Shadow VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
-    ThrowIfFailed(m_device->CreateVertexShader(shadowVSBlob->GetBufferPointer(), shadowVSBlob->GetBufferSize(), nullptr, &m_shadowVS));
+    m_shadowVS = std::make_unique<VertexShader>();
+    m_shadowVS->Init(m_device.Get(), L"Shaders/Shadow.hlsl", "main", nullptr, 0);
+
 
     // --- 3. UI Shaders ---
-    hr = D3DCompile(uiVertexShaderSource, strlen(uiVertexShaderSource), "UIVS", nullptr, nullptr, "main", "vs_5_0", 0, 0, &uiVSBlob, &errorBlob);
+    HRESULT hr = D3DCompile(uiVertexShaderSource, strlen(uiVertexShaderSource), "UIVS", nullptr, nullptr, "main", "vs_5_0", 0, 0, &uiVSBlob, &errorBlob);
     if (FAILED(hr)) { if (errorBlob) { throw std::runtime_error(std::string("UI VS Error: ") + (char*)errorBlob->GetBufferPointer()); } else { ThrowIfFailed(hr); } }
     ThrowIfFailed(m_device->CreateVertexShader(uiVSBlob->GetBufferPointer(), uiVSBlob->GetBufferSize(), nullptr, &m_uiVS));
 
@@ -578,9 +397,9 @@ void Graphics::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
     outLightView = DirectX::XMMatrixLookAtLH(lightPos, lightTarget, { 0.0f, 1.0f, 0.0f });
     outLightProj = DirectX::XMMatrixOrthographicLH(40.0f, 40.0f, 0.1f, 100.0f);
 
-    m_deviceContext->VSSetShader(m_shadowVS.Get(), nullptr, 0);
+    m_shadowVS->Bind(m_deviceContext.Get());
     m_deviceContext->PSSetShader(nullptr, nullptr, 0);
-    m_deviceContext->IASetInputLayout(m_inputLayout.Get());
+    m_deviceContext->IASetInputLayout(m_mainVS->GetInputLayout());
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (const auto& pGameObject : gameObjects)
@@ -647,9 +466,8 @@ void Graphics::RenderMainPass(
     m_deviceContext->PSSetSamplers(0, 1, m_samplerState.GetAddressOf());
     m_deviceContext->PSSetSamplers(2, 1, m_shadowSampler.GetAddressOf());
 
-    m_deviceContext->IASetInputLayout(m_inputLayout.Get());
-    m_deviceContext->VSSetShader(m_vertexShader.Get(), nullptr, 0);
-    m_deviceContext->PSSetShader(m_pixelShader.Get(), nullptr, 0);
+    m_mainVS->Bind(m_deviceContext.Get());
+    m_mainPS->Bind(m_deviceContext.Get());
     m_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (const auto& pGameObject : gameObjects)
