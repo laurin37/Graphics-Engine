@@ -26,7 +26,7 @@ PS_INPUT VS_main(VS_INPUT input)
     output.pos = mul(float4(input.pos, 1.0f), worldViewProj);
     
     // Force the vertex to the far clipping plane
-    output.pos.z = output.pos.w;
+    output.pos = output.pos.xyww;
     
     return output;
 }

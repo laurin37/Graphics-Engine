@@ -15,6 +15,7 @@ struct ID3D11ShaderResourceView;
 struct ID3D11DepthStencilState;
 struct ID3D11RasterizerState;
 struct ID3D11Buffer;
+struct ID3D11SamplerState;
 
 
 class Skybox
@@ -37,4 +38,5 @@ private:
     Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_dsState;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rsState;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_constantBuffer;
+    Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
 };

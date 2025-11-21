@@ -488,6 +488,8 @@ void Graphics::RenderMainPass(
         DirectX::XMStoreFloat4x4(&vs_cb.lightViewProjMatrix, DirectX::XMMatrixTranspose(lightViewProj));
         m_deviceContext->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
 
+        m_deviceContext->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
+
         pGameObject->Draw(m_deviceContext.Get(), m_psMaterialConstantBuffer.Get());
     }
 
