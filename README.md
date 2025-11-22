@@ -1,3 +1,4 @@
+![Build Status](https://github.com/laurin37/Graphics-Engine/actions/workflows/build.yml/badge.svg)
 # GeminiDX Engine
 
 A custom 3D Graphics Engine built from scratch using C++23 and DirectX 11. This project is a learning exercise in building a modern rendering engine on Windows.
