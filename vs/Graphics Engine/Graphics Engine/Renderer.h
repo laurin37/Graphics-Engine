@@ -23,6 +23,7 @@ struct ID3D11SamplerState;
 struct ID3D11Texture2D;
 struct ID3D11DepthStencilView;
 struct ID3D11RasterizerState;
+class AssetManager; // Forward Declaration
 
 class Renderer
 {
@@ -30,13 +31,17 @@ public:
     Renderer();
     ~Renderer();
 
-    void Initialize(Graphics* graphics, int width, int height);
+    void Initialize(Graphics* graphics, AssetManager* assetManager, int width, int height);
     void RenderFrame(
         const Camera& camera,
         const std::vector<std::unique_ptr<GameObject>>& gameObjects,
         const DirectionalLight& dirLight,
         const std::vector<PointLight>& pointLights
     );
+    void RenderDebug(
+        const Camera& camera,
+        const std::vector<std::unique_ptr<GameObject>>& gameObjects);
+
 
 private:
     void InitPipeline(int width, int height);
@@ -50,6 +55,7 @@ private:
     );
 
     Graphics* m_graphics = nullptr; // Non-owning pointer
+    AssetManager* m_assetManager = nullptr; // Non-owning pointer
 
     // Pipeline objects
     std::unique_ptr<VertexShader> m_mainVS;
@@ -71,6 +77,11 @@ private:
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_shadowSampler;
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_cbShadowMatrix;
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_shadowRS;
+
+    // Debug Drawing objects
+    std::unique_ptr<VertexShader> m_debugVS;
+    std::unique_ptr<PixelShader> m_debugPS;
+    Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_wireframeRS;
     
     // Scene objects
     std::unique_ptr<Skybox> m_skybox;

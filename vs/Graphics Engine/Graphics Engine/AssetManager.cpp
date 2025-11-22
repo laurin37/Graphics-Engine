@@ -3,6 +3,7 @@
 #include "Graphics.h"
 #include "ModelLoader.h"
 #include "TextureLoader.h"
+#include "Mesh.h" // For Vertex struct
 
 AssetManager::AssetManager(Graphics* graphics)
     : m_graphics(graphics)
@@ -17,18 +18,16 @@ AssetManager::~AssetManager() = default;
 
 std::shared_ptr<Mesh> AssetManager::LoadMesh(const std::string& filePath)
 {
-    // Check if mesh is already loaded
     auto it = m_meshes.find(filePath);
     if (it != m_meshes.end())
     {
         return it->second;
     }
 
-    // Not found, load it
     auto mesh = ModelLoader::Load(m_graphics->GetDevice().Get(), filePath);
     if (mesh)
     {
-        // Using make_shared to move the unique_ptr content into a shared_ptr
+        // ModelLoader returns unique_ptr, move it into the map
         m_meshes[filePath] = std::move(mesh);
         return m_meshes[filePath];
     }
@@ -38,14 +37,12 @@ std::shared_ptr<Mesh> AssetManager::LoadMesh(const std::string& filePath)
 
 Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> AssetManager::LoadTexture(const std::wstring& filePath)
 {
-    // Check if texture is already loaded
     auto it = m_textures.find(filePath);
     if (it != m_textures.end())
     {
         return it->second;
     }
 
-    // Not found, load it
     auto texture = TextureLoader::Load(m_graphics->GetDevice().Get(), m_graphics->GetContext().Get(), filePath);
     if (texture)
     {
@@ -63,8 +60,6 @@ std::shared_ptr<Mesh> AssetManager::GetMesh(const std::string& filePath)
     {
         return it->second;
     }
-    // In a real engine, you might want to return a default "missing" mesh
-    // For now, we'll throw.
     throw std::runtime_error("Mesh not found: " + filePath);
 }
 
@@ -76,4 +71,40 @@ Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> AssetManager::GetTexture(const 
         return it->second;
     }
     throw std::runtime_error("Texture not found.");
+}
+
+std::shared_ptr<Mesh> AssetManager::GetDebugCube()
+{
+    const std::string debugCubeKey = "__debug_cube__";
+    
+    // Check if it's already created
+    auto it = m_meshes.find(debugCubeKey);
+    if (it != m_meshes.end())
+    {
+        return it->second;
+    }
+
+    std::vector<Vertex> vertices = {
+        // Position only, other attributes are not needed for this debug mesh
+        { { -0.5f, -0.5f, -0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { {  0.5f, -0.5f, -0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { {  0.5f,  0.5f, -0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { { -0.5f,  0.5f, -0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { { -0.5f, -0.5f,  0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { {  0.5f, -0.5f,  0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { {  0.5f,  0.5f,  0.5f }, {0,0}, {0,0,0}, {0,0,0} },
+        { { -0.5f,  0.5f,  0.5f }, {0,0}, {0,0,0}, {0,0,0} }
+    };
+
+    std::vector<unsigned int> indices = {
+        0, 1, 1, 2, 2, 3, 3, 0, // Front face
+        4, 5, 5, 6, 6, 7, 7, 4, // Back face
+        0, 4, 1, 5, 2, 6, 3, 7  // Connections
+    };
+
+    auto device = m_graphics->GetDevice().Get();
+    auto mesh = std::make_shared<Mesh>(device, vertices, indices);
+
+    m_meshes[debugCubeKey] = mesh;
+    return mesh;
 }

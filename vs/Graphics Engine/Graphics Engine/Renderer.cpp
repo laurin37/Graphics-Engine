@@ -1,12 +1,14 @@
 #include "EnginePCH.h"
 #include "Renderer.h"
 #include "Graphics.h"
+#include "AssetManager.h"
 #include "Camera.h"
 #include "GameObject.h"
 #include "Shader.h"
 #include "Skybox.h"
 #include "PostProcess.h"
 #include "Material.h"
+#include "Collision.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -15,9 +17,10 @@
 Renderer::Renderer() = default;
 Renderer::~Renderer() = default;
 
-void Renderer::Initialize(Graphics* graphics, int width, int height)
+void Renderer::Initialize(Graphics* graphics, AssetManager* assetManager, int width, int height)
 {
     m_graphics = graphics;
+    m_assetManager = assetManager;
     InitPipeline(width, height);
 }
 
@@ -30,8 +33,6 @@ void Renderer::RenderFrame(
     ID3D11DeviceContext* context = m_graphics->GetContext().Get();
     ID3D11DepthStencilView* dsv = m_graphics->GetDepthStencilView().Get();
     ID3D11RenderTargetView* rtv = m_graphics->GetRenderTargetView().Get();
-
-    // --- DEBUG: Bypassing Post-Processing to test scene rendering ---
     
     // 1. Render shadows first, as it uses its own render targets
     DirectX::XMMATRIX lightView, lightProj;
@@ -45,23 +46,6 @@ void Renderer::RenderFrame(
 
     // 3. Render scene directly to back buffer
     RenderMainPass(camera, gameObjects, lightView * lightProj, dirLight, pointLights);
-
-
-    // --- Original Post-Processing Flow (commented out) ---
-    /*
-    // Step 1: Render shadows first
-    DirectX::XMMATRIX lightView, lightProj;
-    RenderShadowPass(gameObjects, lightView, lightProj);
-    
-    // Step 2: Bind the post-process render target for the main pass
-    m_postProcess->Bind(context, dsv);
-
-    // Step 3: Render the scene to the off-screen texture.
-    RenderMainPass(camera, gameObjects, lightView * lightProj, dirLight, pointLights);
-
-    // Step 4: Apply post-processing and draw to the back buffer.
-    m_postProcess->Draw(context, rtv);
-    */
 }
 
 void Renderer::InitPipeline(int width, int height)
@@ -84,7 +68,7 @@ void Renderer::InitPipeline(int width, int height)
 
     // --- 2. Shadow Shaders ---
     m_shadowVS = std::make_unique<VertexShader>();
-    m_shadowVS->Init(device, L"Shaders/Shadow.hlsl", "main", nullptr, 0);
+    m_shadowVS->Init(device, L"Shaders/Shadow.hlsl", "main", inputLayoutDesc, 1);
 
     // --- 3. Constant Buffers ---
     D3D11_BUFFER_DESC cbd = {};
@@ -186,6 +170,19 @@ void Renderer::InitPipeline(int width, int height)
     m_projectionMatrix = DirectX::XMMatrixPerspectiveFovLH(
         DirectX::XM_PIDIV4, static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f
     );
+
+    // --- 8. Debug Tools ---
+    m_debugVS = std::make_unique<VertexShader>();
+    m_debugVS->Init(device, L"Shaders/Debug.hlsl", "VS", inputLayoutDesc, 1); // Only need POS
+
+    m_debugPS = std::make_unique<PixelShader>();
+    m_debugPS->Init(device, L"Shaders/Debug.hlsl", "PS");
+
+    D3D11_RASTERIZER_DESC wireframeDesc = {};
+    wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;
+    wireframeDesc.CullMode = D3D11_CULL_NONE;
+    wireframeDesc.DepthClipEnable = true;
+    ThrowIfFailed(device->CreateRasterizerState(&wireframeDesc, &m_wireframeRS));
 }
 
 void Renderer::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& gameObjects, DirectX::XMMATRIX& outLightView, DirectX::XMMATRIX& outLightProj)
@@ -211,7 +208,6 @@ void Renderer::RenderShadowPass(const std::vector<std::unique_ptr<GameObject>>& 
 
     m_shadowVS->Bind(context);
     context->PSSetShader(nullptr, nullptr, 0);
-    context->IASetInputLayout(m_mainVS->GetInputLayout());
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     for (const auto& pGameObject : gameObjects)
@@ -238,9 +234,6 @@ void Renderer::RenderMainPass(
 {
     ID3D11DeviceContext* context = m_graphics->GetContext().Get();
 
-    // NOTE: RTV and DSV are set by the caller (RenderFrame via PostProcess::Bind)
-    // Viewport is also set by the caller.
-    // Let's reset it here just in case.
     D3D11_TEXTURE2D_DESC backBufferDesc;
     m_graphics->GetBackBuffer().Get()->GetDesc(&backBufferDesc);
     D3D11_VIEWPORT vp = {};
@@ -296,9 +289,57 @@ void Renderer::RenderMainPass(
         pGameObject->Draw(context, m_psMaterialConstantBuffer.Get());
     }
 
-    // Draw Skybox
     if (m_skybox)
     {
         m_skybox->Draw(context, camera, m_projectionMatrix);
     }
+}
+
+void Renderer::RenderDebug(
+    const Camera& camera,
+    const std::vector<std::unique_ptr<GameObject>>& gameObjects)
+{
+    ID3D11DeviceContext* context = m_graphics->GetContext().Get();
+
+    // Set wireframe mode
+    context->RSSetState(m_wireframeRS.Get());
+
+    // Bind debug shaders
+    m_debugVS->Bind(context);
+    m_debugPS->Bind(context);
+
+    // Get the cube mesh for drawing AABBs
+    auto debugCube = m_assetManager->GetDebugCube();
+    if (!debugCube) return;
+
+    // The debug vertex shader's Bind method already sets the correct input layout.
+    // We just need to set the topology for drawing lines.
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    DirectX::XMMATRIX viewMatrix = camera.GetViewMatrix();
+
+    for (const auto& pGameObject : gameObjects)
+    {
+        if (!pGameObject) continue;
+
+        AABB worldAABB = pGameObject->GetWorldBoundingBox();
+
+        DirectX::XMMATRIX scale = DirectX::XMMatrixScaling(worldAABB.extents.x * 2.0f, worldAABB.extents.y * 2.0f, worldAABB.extents.z * 2.0f);
+        DirectX::XMMATRIX translate = DirectX::XMMatrixTranslation(worldAABB.center.x, worldAABB.center.y, worldAABB.center.z);
+        DirectX::XMMATRIX worldMatrix = scale * translate;
+
+        DirectX::XMMATRIX wvp = worldMatrix * viewMatrix * m_projectionMatrix;
+        
+        CB_VS_vertexshader vs_cb;
+        DirectX::XMStoreFloat4x4(&vs_cb.worldMatrix, DirectX::XMMatrixTranspose(wvp));
+        context->UpdateSubresource(m_vsConstantBuffer.Get(), 0, nullptr, &vs_cb, 0, 0);
+
+        context->VSSetConstantBuffers(0, 1, m_vsConstantBuffer.GetAddressOf());
+
+        debugCube->Draw(context);
+    }
+
+    // Reset rasterizer state to default
+    context->RSSetState(nullptr);
+    context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }

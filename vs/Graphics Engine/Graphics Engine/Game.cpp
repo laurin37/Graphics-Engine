@@ -25,12 +25,13 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
     {
         m_window.Initialize(hInstance, nCmdShow, L"GeminiDX Engine", L"GeminiDXWindowClass", WINDOW_WIDTH, WINDOW_HEIGHT);
         m_graphics.Initialize(m_window.GetHWND(), WINDOW_WIDTH, WINDOW_HEIGHT);
-        m_renderer = std::make_unique<Renderer>();
-        m_renderer->Initialize(&m_graphics, WINDOW_WIDTH, WINDOW_HEIGHT);
         m_input.Initialize(m_window.GetHWND());
 
         // Create the asset manager
         m_assetManager = std::make_unique<AssetManager>(&m_graphics);
+
+        m_renderer = std::make_unique<Renderer>();
+        m_renderer->Initialize(&m_graphics, m_assetManager.get(), WINDOW_WIDTH, WINDOW_HEIGHT);
         m_uiRenderer = std::make_unique<UIRenderer>(&m_graphics);
 
         // Load assets and set up the scene
@@ -149,8 +150,16 @@ void Game::Run()
         float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_lastTime).count();
         m_lastTime = currentTime;
 
-        Update(deltaTime);
-        Render();
+        try
+        {
+            Update(deltaTime);
+            Render();
+        }
+        catch (const std::exception& e)
+        {
+            MessageBoxA(nullptr, e.what(), "Runtime Error", MB_OK | MB_ICONERROR);
+            break; // Exit game loop on error
+        }
     }
 }
 
@@ -251,6 +260,7 @@ void Game::UpdatePhysics(float deltaTime)
 void Game::Render()
 {
     m_renderer->RenderFrame(*m_camera, m_gameObjects, m_dirLight, m_pointLights);
+    m_renderer->RenderDebug(*m_camera, m_gameObjects);
 
     m_uiRenderer->EnableUIState();
 
