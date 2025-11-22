@@ -13,7 +13,9 @@ public:
     DirectX::XMVECTOR GetPosition() const;
     DirectX::XMFLOAT3 GetPositionFloat3() const;
     DirectX::XMVECTOR GetRotation() const;
-    DirectX::XMVECTOR GetForward() const; // New: Get the camera's forward vector
+    DirectX::XMVECTOR GetForward() const; 
+    DirectX::XMVECTOR GetRight() const; // Added
+    DirectX::XMVECTOR GetUp() const;    // Added
 
     void AdjustPosition(float x, float y, float z);
     void AdjustRotation(float x, float y, float z);

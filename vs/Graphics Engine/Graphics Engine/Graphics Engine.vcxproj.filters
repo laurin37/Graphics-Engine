@@ -90,6 +90,9 @@
     <ClCompile Include="src\Crosshair.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="src\Scene.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\include\Window.h">
@@ -168,6 +171,9 @@
       <Filter>Headerdateien</Filter>
     </ClInclude>
     <ClInclude Include="src\include\Crosshair.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\Scene.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>

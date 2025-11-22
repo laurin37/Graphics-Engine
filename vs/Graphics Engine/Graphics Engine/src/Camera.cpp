@@ -18,6 +18,18 @@ DirectX::XMVECTOR Camera::GetForward() const
     return XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotMatrix);
 }
 
+DirectX::XMVECTOR Camera::GetRight() const
+{
+    XMMATRIX rotMatrix = XMMatrixRotationRollPitchYaw(m_rot.x, m_rot.y, m_rot.z);
+    return XMVector3TransformCoord(XMVectorSet(1.0f, 0.0f, 0.0f, 0.0f), rotMatrix);
+}
+
+DirectX::XMVECTOR Camera::GetUp() const
+{
+    XMMATRIX rotMatrix = XMMatrixRotationRollPitchYaw(m_rot.x, m_rot.y, m_rot.z);
+    return XMVector3TransformCoord(XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f), rotMatrix);
+}
+
 void Camera::AdjustPosition(float x, float y, float z)
 {
     XMVECTOR move = XMVectorSet(x, y, z, 0.0f);

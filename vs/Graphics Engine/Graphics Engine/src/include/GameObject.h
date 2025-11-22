@@ -18,6 +18,7 @@ public:
     void SetScale(float x, float y, float z) { m_transform.SetScale(x, y, z); }
 
     DirectX::XMFLOAT3 GetPosition() const { return m_transform.GetPosition(); }
+    DirectX::XMFLOAT3 GetRotation() const { return m_transform.GetRotation(); }
     DirectX::XMMATRIX GetWorldMatrix() const { return m_transform.GetWorldMatrix(); }
     void Draw(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialConstantBuffer) const;
 
