@@ -1,9 +1,9 @@
-#include "EnginePCH.h"
-#include "Skybox.h"
-#include "Mesh.h"
-#include "Shader.h"
-#include "Camera.h"
-#include "TextureLoader.h"
+#include "include/EnginePCH.h"
+#include "include/Skybox.h"
+#include "include/Mesh.h"
+#include "include/Shader.h"
+#include "include/Camera.h"
+#include "include/TextureLoader.h"
 #include <vector>
 
 // Constant buffer for skybox vertex shader
@@ -23,10 +23,10 @@ void Skybox::Init(ID3D11Device* device, ID3D11DeviceContext* context, const std:
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
     m_vs = std::make_unique<VertexShader>();
-    m_vs->Init(device, L"Shaders/Skybox.hlsl", "VS_main", skyboxLayout, ARRAYSIZE(skyboxLayout));
+    m_vs->Init(device, L"Assets/Shaders/Skybox.hlsl", "VS_main", skyboxLayout, ARRAYSIZE(skyboxLayout));
 
     m_ps = std::make_unique<PixelShader>();
-    m_ps->Init(device, L"Shaders/Skybox.hlsl", "PS_main");
+    m_ps->Init(device, L"Assets/Shaders/Skybox.hlsl", "PS_main");
 
     // 2. Create Cube Mesh
     std::vector<Vertex> vertices = {

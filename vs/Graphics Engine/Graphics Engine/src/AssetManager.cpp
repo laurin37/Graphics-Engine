@@ -1,9 +1,9 @@
-#include "EnginePCH.h"
-#include "AssetManager.h"
-#include "Graphics.h"
-#include "ModelLoader.h"
-#include "TextureLoader.h"
-#include "Mesh.h" // For Vertex struct
+#include "include/EnginePCH.h"
+#include "include/AssetManager.h"
+#include "include/Graphics.h"
+#include "include/ModelLoader.h"
+#include "include/TextureLoader.h"
+#include "include/Mesh.h"
 
 AssetManager::AssetManager(Graphics* graphics)
     : m_graphics(graphics)

@@ -127,45 +127,45 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AssetManager.cpp" />
-    <ClCompile Include="Camera.cpp" />
-    <ClCompile Include="Game.cpp" />
-    <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="Graphics.cpp" />
-    <ClCompile Include="Input.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Material.cpp" />
-    <ClCompile Include="Mesh.cpp" />
-    <ClCompile Include="ModelLoader.cpp" />
-    <ClCompile Include="PostProcess.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="SimpleFont.cpp" />
-    <ClCompile Include="Skybox.cpp" />
-    <ClCompile Include="TextureLoader.cpp" />
-    <ClCompile Include="UIRenderer.cpp" />
-    <ClCompile Include="Window.cpp" />
+    <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Camera.cpp" />
+    <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\GameObject.cpp" />
+    <ClCompile Include="src\Graphics.cpp" />
+    <ClCompile Include="src\Input.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\Material.cpp" />
+    <ClCompile Include="src\Mesh.cpp" />
+    <ClCompile Include="src\ModelLoader.cpp" />
+    <ClCompile Include="src\PostProcess.cpp" />
+    <ClCompile Include="src\Renderer.cpp" />
+    <ClCompile Include="src\Shader.cpp" />
+    <ClCompile Include="src\SimpleFont.cpp" />
+    <ClCompile Include="src\Skybox.cpp" />
+    <ClCompile Include="src\TextureLoader.cpp" />
+    <ClCompile Include="src\UIRenderer.cpp" />
+    <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AssetManager.h" />
-    <ClInclude Include="Camera.h" />
-    <ClInclude Include="Collision.h" />
-    <ClInclude Include="EnginePCH.h" />
-    <ClInclude Include="Game.h" />
-    <ClInclude Include="GameObject.h" />
-    <ClInclude Include="Graphics.h" />
-    <ClInclude Include="Input.h" />
-    <ClInclude Include="Material.h" />
-    <ClInclude Include="Mesh.h" />
-    <ClInclude Include="ModelLoader.h" />
-    <ClInclude Include="PostProcess.h" />
-    <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Shader.h" />
-    <ClInclude Include="SimpleFont.h" />
-    <ClInclude Include="Skybox.h" />
-    <ClInclude Include="TextureLoader.h" />
-    <ClInclude Include="UIRenderer.h" />
-    <ClInclude Include="Window.h" />
+    <ClInclude Include="src\include\AssetManager.h" />
+    <ClInclude Include="src\include\Camera.h" />
+    <ClInclude Include="src\include\Collision.h" />
+    <ClInclude Include="src\include\EnginePCH.h" />
+    <ClInclude Include="src\include\Game.h" />
+    <ClInclude Include="src\include\GameObject.h" />
+    <ClInclude Include="src\include\Graphics.h" />
+    <ClInclude Include="src\include\Input.h" />
+    <ClInclude Include="src\include\Material.h" />
+    <ClInclude Include="src\include\Mesh.h" />
+    <ClInclude Include="src\include\ModelLoader.h" />
+    <ClInclude Include="src\include\PostProcess.h" />
+    <ClInclude Include="src\include\Renderer.h" />
+    <ClInclude Include="src\include\Shader.h" />
+    <ClInclude Include="src\include\SimpleFont.h" />
+    <ClInclude Include="src\include\Skybox.h" />
+    <ClInclude Include="src\include\TextureLoader.h" />
+    <ClInclude Include="src\include\UIRenderer.h" />
+    <ClInclude Include="src\include\Window.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Models\interieur.obj">
@@ -215,29 +215,29 @@
     <Image Include="Assets\Textures\snow_02_translucent_4k.png" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Shadow.hlsl">
+    <None Include="Assets\Shaders\Shadow.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\Standard.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Shaders\Skybox.hlsl">
+    <None Include="Assets\Shaders\Standard.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\PostProcess.hlsl">
+    <None Include="Assets\Shaders\Skybox.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\UIPixelShader.hlsl">
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Shaders\PostProcess.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\UIVertexShader.hlsl">
+    <None Include="Assets\Shaders\UIPixelShader.hlsl">
       <FileType>Document</FileType>
     </None>
-    <None Include="Shaders\Debug.hlsl">
+    <None Include="Assets\Shaders\UIVertexShader.hlsl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\Debug.hlsl">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

@@ -1,7 +1,7 @@
-#include "EnginePCH.h"
-#include "UIRenderer.h"
-#include "Graphics.h"
-#include "SimpleFont.h"
+#include "include/EnginePCH.h"
+#include "include/UIRenderer.h"
+#include "include/Graphics.h"
+#include "include/SimpleFont.h"
 
 UIRenderer::UIRenderer(Graphics* graphics)
     : m_graphics(graphics)
@@ -25,7 +25,7 @@ void UIRenderer::Initialize()
     Microsoft::WRL::ComPtr<ID3DBlob> uiVSBlob, uiPSBlob, errorBlob;
 
     // Compile Vertex Shader
-    HRESULT hr = D3DCompileFromFile(L"Shaders/UIVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", flags, 0, &uiVSBlob, &errorBlob);
+    HRESULT hr = D3DCompileFromFile(L"Assets/Shaders/UIVertexShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "vs_5_0", flags, 0, &uiVSBlob, &errorBlob);
     if (FAILED(hr))
     {
         if (errorBlob)
@@ -42,7 +42,7 @@ void UIRenderer::Initialize()
     ThrowIfFailed(device->CreateVertexShader(uiVSBlob->GetBufferPointer(), uiVSBlob->GetBufferSize(), nullptr, &m_uiVS));
 
     // Compile Pixel Shader
-    hr = D3DCompileFromFile(L"Shaders/UIPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", flags, 0, &uiPSBlob, &errorBlob);
+    hr = D3DCompileFromFile(L"Assets/Shaders/UIPixelShader.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "main", "ps_5_0", flags, 0, &uiPSBlob, &errorBlob);
     if (FAILED(hr))
     {
         if (errorBlob)

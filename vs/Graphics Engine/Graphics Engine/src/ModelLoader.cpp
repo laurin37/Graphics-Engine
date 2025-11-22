@@ -1,6 +1,6 @@
-#include "EnginePCH.h"
-#include "ModelLoader.h"
-#include "Mesh.h"
+#include "include/EnginePCH.h"
+#include "include/ModelLoader.h"
+#include "include/Mesh.h"
 #include <fstream>
 #include <sstream>
 #include <map>

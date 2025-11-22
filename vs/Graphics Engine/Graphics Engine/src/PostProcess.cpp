@@ -1,6 +1,6 @@
-#include "EnginePCH.h"
-#include "PostProcess.h"
-#include "Shader.h"
+#include "include/EnginePCH.h"
+#include "include/PostProcess.h"
+#include "include/Shader.h"
 
 PostProcess::PostProcess() = default;
 PostProcess::~PostProcess() = default;
@@ -23,10 +23,10 @@ void PostProcess::Init(ID3D11Device* device, int width, int height)
 
     // 2. Create shaders
     m_vs = std::make_unique<VertexShader>();
-    m_vs->Init(device, L"Shaders/PostProcess.hlsl", "VS_main", nullptr, 0); // No input layout needed for this VS
+    m_vs->Init(device, L"Assets/Shaders/PostProcess.hlsl", "VS_main", nullptr, 0); // No input layout needed for this VS
 
     m_ps = std::make_unique<PixelShader>();
-    m_ps->Init(device, L"Shaders/PostProcess.hlsl", "PS_main");
+    m_ps->Init(device, L"Assets/Shaders/PostProcess.hlsl", "PS_main");
 
     // 3. Create sampler state
     D3D11_SAMPLER_DESC sampDesc = {};

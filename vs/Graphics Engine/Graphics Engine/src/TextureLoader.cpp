@@ -1,6 +1,6 @@
-#include "EnginePCH.h"
-#include "TextureLoader.h"
-#include "Graphics.h" 
+#include "include/EnginePCH.h"
+#include "include/TextureLoader.h"
+#include "include/Graphics.h" 
 
 #include <wincodec.h>
 #include <wrl/client.h>

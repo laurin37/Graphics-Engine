@@ -1,11 +1,11 @@
-#include "EnginePCH.h"
-#include "Graphics.h"
-#include "GameObject.h"
-#include "Camera.h"
-#include "Mesh.h"
-#include "Material.h"
-#include "Skybox.h"
-#include "PostProcess.h"
+#include "include/EnginePCH.h"
+#include "include/Graphics.h"
+#include "include/GameObject.h"
+#include "include/Camera.h"
+#include "include/Mesh.h"
+#include "include/Material.h"
+#include "include/Skybox.h"
+#include "include/PostProcess.h"
 #include <vector>
 #include <string>
 

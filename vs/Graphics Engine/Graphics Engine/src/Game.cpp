@@ -1,11 +1,11 @@
-#include "Game.h"
-#include "AssetManager.h"
-#include "UIRenderer.h"
-#include "Material.h"
-#include "ModelLoader.h"
-#include "TextureLoader.h"
-#include "Graphics.h" 
-#include "Collision.h"
+#include "include/Game.h"
+#include "include/AssetManager.h"
+#include "include/UIRenderer.h"
+#include "include/Material.h"
+#include "include/ModelLoader.h"
+#include "include/TextureLoader.h"
+#include "include/Graphics.h" 
+#include "include/Collision.h"
 
 Game::Game()
     : m_dirLight{ {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f} }

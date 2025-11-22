@@ -1,14 +1,14 @@
-#include "EnginePCH.h"
-#include "Renderer.h"
-#include "Graphics.h"
-#include "AssetManager.h"
-#include "Camera.h"
-#include "GameObject.h"
-#include "Shader.h"
-#include "Skybox.h"
-#include "PostProcess.h"
-#include "Material.h"
-#include "Collision.h"
+#include "include/EnginePCH.h"
+#include "include/Renderer.h"
+#include "include/Graphics.h"
+#include "include/AssetManager.h"
+#include "include/Camera.h"
+#include "include/GameObject.h"
+#include "include/Shader.h"
+#include "include/Skybox.h"
+#include "include/PostProcess.h"
+#include "include/Material.h"
+#include "include/Collision.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -61,14 +61,14 @@ void Renderer::InitPipeline(int width, int height)
     };
 
     m_mainVS = std::make_unique<VertexShader>();
-    m_mainVS->Init(device, L"Shaders/Standard.hlsl", "VS_main", inputLayoutDesc, ARRAYSIZE(inputLayoutDesc));
+    m_mainVS->Init(device, L"Assets/Shaders/Standard.hlsl", "VS_main", inputLayoutDesc, ARRAYSIZE(inputLayoutDesc));
 
     m_mainPS = std::make_unique<PixelShader>();
-    m_mainPS->Init(device, L"Shaders/Standard.hlsl", "PS_main");
+    m_mainPS->Init(device, L"Assets/Shaders/Standard.hlsl", "PS_main");
 
     // --- 2. Shadow Shaders ---
     m_shadowVS = std::make_unique<VertexShader>();
-    m_shadowVS->Init(device, L"Shaders/Shadow.hlsl", "main", inputLayoutDesc, 1);
+    m_shadowVS->Init(device, L"Assets/Shaders/Shadow.hlsl", "main", inputLayoutDesc, 1);
 
     // --- 3. Constant Buffers ---
     D3D11_BUFFER_DESC cbd = {};
@@ -173,10 +173,10 @@ void Renderer::InitPipeline(int width, int height)
 
     // --- 8. Debug Tools ---
     m_debugVS = std::make_unique<VertexShader>();
-    m_debugVS->Init(device, L"Shaders/Debug.hlsl", "VS", inputLayoutDesc, 1); // Only need POS
+    m_debugVS->Init(device, L"Assets/Shaders/Debug.hlsl", "VS", inputLayoutDesc, 1); // Only need POS
 
     m_debugPS = std::make_unique<PixelShader>();
-    m_debugPS->Init(device, L"Shaders/Debug.hlsl", "PS");
+    m_debugPS->Init(device, L"Assets/Shaders/Debug.hlsl", "PS");
 
     D3D11_RASTERIZER_DESC wireframeDesc = {};
     wireframeDesc.FillMode = D3D11_FILL_WIREFRAME;

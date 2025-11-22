@@ -1,5 +1,5 @@
-#include "GameObject.h"
-#include "EnginePCH.h"
+#include "include/GameObject.h"
+#include "include/EnginePCH.h"
 
 using namespace DirectX;
 

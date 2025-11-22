@@ -15,102 +15,117 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="src\main.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Window.cpp">
+    <ClCompile Include="src\Window.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Graphics.cpp">
+    <ClCompile Include="src\Graphics.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Camera.cpp">
+    <ClCompile Include="src\Camera.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Mesh.cpp">
+    <ClCompile Include="src\Mesh.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="GameObject.cpp">
+    <ClCompile Include="src\GameObject.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Input.cpp">
+    <ClCompile Include="src\Input.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Game.cpp">
+    <ClCompile Include="src\Game.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
+    <ClCompile Include="src\Material.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="ModelLoader.cpp">
+    <ClCompile Include="src\ModelLoader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="TextureLoader.cpp">
+    <ClCompile Include="src\TextureLoader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="SimpleFont.cpp">
+    <ClCompile Include="src\SimpleFont.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Shader.cpp">
+    <ClCompile Include="src\Shader.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Skybox.cpp">
+    <ClCompile Include="src\Skybox.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="PostProcess.cpp">
+    <ClCompile Include="src\PostProcess.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Renderer.cpp">
+    <ClCompile Include="src\Renderer.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\AssetManager.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="src\UIRenderer.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Window.h">
+    <ClInclude Include="src\include\Window.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Graphics.h">
+    <ClInclude Include="src\include\Graphics.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Camera.h">
+    <ClInclude Include="src\include\Camera.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Mesh.h">
+    <ClInclude Include="src\include\Mesh.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="GameObject.h">
+    <ClInclude Include="src\include\GameObject.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Input.h">
+    <ClInclude Include="src\include\Input.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="src\include\Game.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="EnginePCH.h">
+    <ClInclude Include="src\include\EnginePCH.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Material.h">
+    <ClInclude Include="src\include\Material.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="ModelLoader.h">
+    <ClInclude Include="src\include\ModelLoader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="TextureLoader.h">
+    <ClInclude Include="src\include\TextureLoader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="SimpleFont.h">
+    <ClInclude Include="src\include\SimpleFont.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Shader.h">
+    <ClInclude Include="src\include\Shader.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Skybox.h">
+    <ClInclude Include="src\include\Skybox.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="PostProcess.h">
+    <ClInclude Include="src\include\PostProcess.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Renderer.h">
+    <ClInclude Include="src\include\Renderer.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\AssetManager.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\Collision.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="src\include\UIRenderer.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -128,10 +143,13 @@
     <None Include="Assets\Models\basic\sphere.obj" />
     <None Include="Assets\Models\basic\cylinder.obj" />
     <None Include="Assets\Models\basic\cone.obj" />
-    <None Include="Shaders\Shadow.hlsl" />
-    <None Include="Shaders\Standard.hlsl" />
-    <None Include="Shaders\Skybox.hlsl" />
-    <None Include="Shaders\PostProcess.hlsl" />
+    <None Include="Assets\Shaders\Shadow.hlsl" />
+    <None Include="Assets\Shaders\Standard.hlsl" />
+    <None Include="Assets\Shaders\Skybox.hlsl" />
+    <None Include="Assets\Shaders\PostProcess.hlsl" />
+    <None Include="Assets\Shaders\UIPixelShader.hlsl" />
+    <None Include="Assets\Shaders\UIVertexShader.hlsl" />
+    <None Include="Assets\Shaders\Debug.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg">

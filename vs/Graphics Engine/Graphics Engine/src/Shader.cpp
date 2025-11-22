@@ -1,6 +1,6 @@
-#include "EnginePCH.h"
-#include "Shader.h"
-#include "Graphics.h" 
+#include "include/EnginePCH.h"
+#include "include/Shader.h"
+#include "include/Graphics.h" 
 #include <d3dcompiler.h>
 
 void CompileShader(const std::wstring& filename, const std::string& entryPoint, const std::string& profile, ID3DBlob** blob)
