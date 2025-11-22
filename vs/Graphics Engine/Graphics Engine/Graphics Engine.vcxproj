@@ -128,10 +128,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\AssetManager.cpp" />
+    <ClCompile Include="src\Bullet.cpp" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\GameObject.cpp" />
     <ClCompile Include="src\Graphics.cpp" />
+    <ClCompile Include="src\Gun.cpp" />
+    <ClCompile Include="src\HealthObject.cpp" />
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\Material.cpp" />
@@ -145,17 +148,21 @@
     <ClCompile Include="src\SimpleFont.cpp" />
     <ClCompile Include="src\Skybox.cpp" />
     <ClCompile Include="src\TextureLoader.cpp" />
+    <ClCompile Include="src\Transform.cpp" />
     <ClCompile Include="src\UIRenderer.cpp" />
     <ClCompile Include="src\Window.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\include\AssetManager.h" />
+    <ClInclude Include="src\include\Bullet.h" />
     <ClInclude Include="src\include\Camera.h" />
     <ClInclude Include="src\include\Collision.h" />
     <ClInclude Include="src\include\EnginePCH.h" />
     <ClInclude Include="src\include\Game.h" />
     <ClInclude Include="src\include\GameObject.h" />
     <ClInclude Include="src\include\Graphics.h" />
+    <ClInclude Include="src\include\Gun.h" />
+    <ClInclude Include="src\include\HealthObject.h" />
     <ClInclude Include="src\include\Input.h" />
     <ClInclude Include="src\include\Material.h" />
     <ClInclude Include="src\include\Mesh.h" />
@@ -168,6 +175,7 @@
     <ClInclude Include="src\include\SimpleFont.h" />
     <ClInclude Include="src\include\Skybox.h" />
     <ClInclude Include="src\include\TextureLoader.h" />
+    <ClInclude Include="src\include\Transform.h" />
     <ClInclude Include="src\include\UIRenderer.h" />
     <ClInclude Include="src\include\Window.h" />
   </ItemGroup>

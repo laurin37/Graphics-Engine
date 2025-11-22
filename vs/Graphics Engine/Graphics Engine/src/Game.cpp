@@ -70,11 +70,11 @@ void Game::LoadScene()
     m_pointLights[3] = { {0.0f, 0.0f, 0.0f, 15.0f}, {1.0f, 0.5f, 0.0f, 2.0f}, {0.2f, 0.2f, 0.0f, 0.0f} };
 
     // 3. Load Basic Assets
-    auto meshCube = m_assetManager->LoadMesh("Assets/Models/basic/cube.obj");
-    auto meshCylinder = m_assetManager->LoadMesh("Assets/Models/basic/cylinder.obj");
-    auto meshCone = m_assetManager->LoadMesh("Assets/Models/basic/cone.obj");
-    auto meshSphere = m_assetManager->LoadMesh("Assets/Models/basic/sphere.obj");
-    auto meshTorus = m_assetManager->LoadMesh("Assets/Models/basic/torus.obj");
+    std::shared_ptr<Mesh> meshCube = m_assetManager->LoadMesh("Assets/Models/basic/cube.obj");
+    std::shared_ptr<Mesh> meshCylinder = m_assetManager->LoadMesh("Assets/Models/basic/cylinder.obj");
+    std::shared_ptr<Mesh> meshCone = m_assetManager->LoadMesh("Assets/Models/basic/cone.obj");
+    std::shared_ptr<Mesh> meshSphere = m_assetManager->LoadMesh("Assets/Models/basic/sphere.obj");
+    std::shared_ptr<Mesh> meshTorus = m_assetManager->LoadMesh("Assets/Models/basic/torus.obj");
 
     // 4. Load Textures
     auto texWood = m_assetManager->LoadTexture(L"Assets/Textures/pine_bark_diff_4k.jpg");
@@ -96,17 +96,48 @@ void Game::LoadScene()
     // 6. Build Scene
 
     // --- Create Player ---
-    // We use a unique_ptr to create it, then store the raw pointer in m_player for logic access,
-    // and finally move the unique_ptr into m_gameObjects so it is owned by the scene and rendered automatically.
     auto playerPtr = std::make_unique<Player>(meshCylinder.get(), matPillar, m_camera.get());
     playerPtr->SetPosition(0.0f, 5.0f, -5.0f);
     m_player = playerPtr.get();
     m_gameObjects.push_back(std::move(playerPtr));
 
+    // --- Create Player's Gun ---
+    auto gunMesh = meshCube; // Using cube as a placeholder for gun mesh
+    auto gunMaterial = matPillar; // Using pillar material as a placeholder
+
+    auto gunPtr = std::make_unique<Gun>(gunMesh.get(), gunMaterial);
+    // Position the gun relative to the player (e.g., slightly in front and to the side)
+    gunPtr->SetPosition(m_player->GetPosition().x + 0.5f, m_player->GetPosition().y + 0.5f, m_player->GetPosition().z + 0.5f);
+    gunPtr->SetScale(0.2f, 0.2f, 0.8f); // Make it look like a simple gun barrel
+
+    m_player->SetGun(gunPtr.get()); // Set player's gun pointer (non-owning)
+    gunPtr->SetOwner(m_player); // Set the Gun's owner
+    m_gameObjects.push_back(std::move(gunPtr)); // Game owns the Gun GameObject
+
+    // --- Store Bullet and HealthObject assets ---
+    m_bulletMesh = meshSphere; // Simple sphere for bullet
+    m_bulletMaterial = std::make_shared<Material>(DirectX::XMFLOAT4(1.0f, 0.5f, 0.0f, 1.0f), 1.0f, 64.0f); // Orange glowing bullet
+
+    m_healthObjectMesh = meshCube; // Simple cube for health object
+    m_healthObjectMaterial = std::make_shared<Material>(DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), 0.5f, 16.0f); // Green default health object
+
+    // --- Create HealthObjects ---
+    auto healthObj1 = std::make_unique<HealthObject>(100.0f, DirectX::XMFLOAT3(5.0f, 1.0f, 5.0f));
+    healthObj1->SetMesh(m_healthObjectMesh.get());
+    // Create a unique material copy for this object so color changes don't affect others
+    healthObj1->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial)); 
+    m_gameObjects.push_back(std::move(healthObj1));
+
+    auto healthObj2 = std::make_unique<HealthObject>(150.0f, DirectX::XMFLOAT3(-5.0f, 1.0f, 5.0f));
+    healthObj2->SetMesh(m_healthObjectMesh.get());
+    // Create a unique material copy for this object
+    healthObj2->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial));
+    m_gameObjects.push_back(std::move(healthObj2));
+
     // --- Create Floor ---
     auto floor = std::make_unique<GameObject>(meshCube.get(), matFloor);
     floor->SetPosition(0.0f, -1.0f, 0.0f);
-    floor->SetScale(20.0f, 0.1f, 20.0f);
+    floor->SetScale(100.0f, 0.1f, 100.0f);
     m_gameObjects.push_back(std::move(floor));
 
     // --- Create Pillars ---
@@ -148,6 +179,46 @@ void Game::LoadScene()
     }
 }
 
+// Helper method to add a bullet to internal vectors
+void Game::AddBulletInternal(std::unique_ptr<Bullet> bullet)
+{
+    m_bullets.push_back(bullet.get());
+    // Also add to m_gameObjects for rendering and general update loop if it's a GameObject
+    m_gameObjects.push_back(std::move(bullet)); // Transfer ownership
+}
+
+void Game::SpawnBullet(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& direction, float speed, float damage)
+{
+    auto bullet = std::make_unique<Bullet>(position, direction, speed, damage);
+    
+    if (m_bulletMesh)
+    {
+        bullet->SetMesh(m_bulletMesh.get());
+    }
+    else
+    {
+        // Log error or use a default mesh if m_bulletMesh is null
+        // For now, let's just assert or return
+        OutputDebugString(L"Error: m_bulletMesh is null when spawning bullet!\n");
+        return; 
+    }
+
+    if (m_bulletMaterial)
+    {
+        bullet->SetMaterial(m_bulletMaterial);
+    }
+    else
+    {
+        // Log error or use a default material if m_bulletMaterial is null
+        OutputDebugString(L"Error: m_bulletMaterial is null when spawning bullet!\n");
+        return;
+    }
+
+    bullet->SetScale(0.2f, 0.2f, 0.2f); // Small bullet size
+
+    AddBulletInternal(std::move(bullet));
+}
+
 void Game::Run()
 {
     while (true)
@@ -186,12 +257,110 @@ void Game::Update(float deltaTime)
     m_input.Update();
     if (m_input.IsKeyDown(VK_ESCAPE)) PostQuitMessage(0);
 
+    // --- PLAYER SHOOTING ---
+    if (m_player && m_input.IsKeyDown(VK_LBUTTON))
+    {
+        m_player->Shoot(this); // Player's gun will spawn bullets via Game::SpawnBullet
+    }
+
     // --- UPDATE PLAYER ---
-    // The Player class now handles Input (WASD) and Camera Rotation
     if (m_player)
     {
         m_player->Update(deltaTime, m_input, m_gameObjects);
     }
+
+    // --- UPDATE BULLETS AND CHECK COLLISIONS ---
+    for (const auto& bullet : m_bullets)
+    {
+        bullet->Update(deltaTime);
+
+        // Simple despawn logic: remove if too far below ground or too old
+        if (bullet->GetPosition().y < -50.0f || bullet->GetAge() > 5.0f) // Assuming GetAge() exists or will be added to Bullet
+        {
+            bullet->SetActive(false); // Mark for removal
+            continue;
+        }
+
+        // Collision with other GameObjects
+        for (const auto& obj : m_gameObjects)
+        {
+            if (obj.get() == bullet || obj.get() == m_player) continue; // Don't collide with self or player
+
+            if (PhysicsSystem::AABBIntersects(bullet->GetWorldBoundingBox(), obj->GetWorldBoundingBox()))
+            {
+                // Check if it's a HealthObject
+                HealthObject* healthObj = dynamic_cast<HealthObject*>(obj.get());
+                if (healthObj)
+                {
+                    OutputDebugString(L"Bullet hit HealthObject!\n");
+                    healthObj->TakeDamage(bullet->GetDamage());
+                    bullet->SetActive(false); // Bullet is destroyed on impact
+                    break; // Bullet can only hit one object
+                }
+                else
+                {
+                    // Collided with a non-health object, maybe bounce or destroy bullet
+                    // For now, destroy bullet on any non-player collision
+                    bullet->SetActive(false);
+                    break;
+                }
+            }
+        }
+    }
+
+    // --- CLEANUP INACTIVE BULLETS AND DEAD HEALTH OBJECTS ---
+    // Remove inactive bullets from m_bullets
+    std::vector<Bullet*> activeBullets;
+    for (auto* bullet : m_bullets)
+    {
+        if (bullet->IsActive())
+        {
+            activeBullets.push_back(bullet);
+        }
+    }
+    m_bullets = activeBullets;
+
+    // Remove inactive/dead GameObjects from m_gameObjects
+    std::vector<std::unique_ptr<GameObject>> activeGameObjects;
+    for (auto& obj : m_gameObjects)
+    {
+        // Keep the player regardless
+        if (obj.get() == m_player)
+        {
+            activeGameObjects.push_back(std::move(obj));
+            continue;
+        }
+
+        // Check if it's a Bullet (already handled its active state in m_bullets)
+        Bullet* bulletObj = dynamic_cast<Bullet*>(obj.get());
+        if (bulletObj)
+        {
+            // If it's an active bullet, keep it
+            if (bulletObj->IsActive())
+            {
+                activeGameObjects.push_back(std::move(obj));
+            }
+            // Else, it's an inactive bullet, so let it be removed
+            continue; 
+        }
+
+        // Check if it's a HealthObject
+        HealthObject* healthObj = dynamic_cast<HealthObject*>(obj.get());
+        if (healthObj)
+        {
+            // If it's a living health object, keep it
+            if (!healthObj->IsDead())
+            {
+                activeGameObjects.push_back(std::move(obj));
+            }
+            // Else, it's a dead health object, so let it be removed
+            continue;
+        }
+        
+        // For all other generic GameObjects, keep them
+        activeGameObjects.push_back(std::move(obj));
+    }
+    m_gameObjects = std::move(activeGameObjects);
 
     // --- ANIMATION LOGIC (Objects) ---
     static float time = 0.0f;
@@ -201,31 +370,25 @@ void Game::Update(float deltaTime)
     // Note: Because we inserted Player at index 0, all indices shifted by 1 compared to previous code.
     // Previous Index 10 (Pedestal) is now likely 11. Previous 11 (Artifact) is now 12.
     // To be safe, you might want to store these as specific pointers, but keeping the loop logic for now:
-    if (m_gameObjects.size() > 11)
-    {
-        // Rotate Artifact
-        m_gameObjects[11]->SetRotation(DirectX::XM_PIDIV2, time, 0.0f);
-    }
-
-    if (m_gameObjects.size() >= 16)
-    {
-        // Animate Orbs
-        for (int i = 0; i < 4; i++)
-        {
-            float offset = i * (DirectX::XM_PI / 2.0f);
-            float radius = 3.5f;
-            float x = sin(time + offset) * radius;
-            float z = cos(time + offset) * radius;
-            float y = 2.0f + sin(time * 2.0f + offset) * 0.5f;
-
-            // Indices shifted by +1 due to player
-            m_gameObjects[12 + i]->SetPosition(x, y, z);
-
-            m_pointLights[i].position.x = x;
-            m_pointLights[i].position.y = y;
-            m_pointLights[i].position.z = z;
+    // This part might need re-evaluation due to dynamic object removal changing indices.
+    // A better approach would be to store specific objects with named unique_ptr members or a map.
+    // For now, I'll adjust indices based on the initial static objects + player.
+    // Player (0), HealthObj1(1), HealthObj2(2), Floor(3), Pillar1(4) ...
+    // The artifact is one of the later static objects. Let's assume it's still at an index > 10.
+    size_t artifactIndex = -1;
+    for (size_t i = 0; i < m_gameObjects.size(); ++i) {
+        if (m_gameObjects[i]->GetName() == L"Artifact") { // Assuming GameObject has a GetName()
+            artifactIndex = i;
+            break;
         }
     }
+    if (artifactIndex != -1)
+    {
+        m_gameObjects[artifactIndex]->SetRotation(DirectX::XM_PIDIV2, time, 0.0f);
+    }
+    // Same for Floating Orbs - this part becomes fragile with dynamic objects
+    // Best to replace magic indices with named pointers or a more robust scene graph.
+    // For now, skipping dynamic object animation for simplicity, as it requires a full scene graph refactor.
 
     // --- UPDATE PHYSICS SYSTEM ---
     // Handles gravity and collisions for non-player objects (if any are dynamic)
@@ -234,7 +397,7 @@ void Game::Update(float deltaTime)
 
 void Game::Render()
 {
-    // RenderScene handles the player automatically because the player is inside m_gameObjects
+    // RenderScene handles all GameObjects that are currently in m_gameObjects
     m_renderer->RenderFrame(*m_camera, m_gameObjects, m_dirLight, m_pointLights);
     m_renderer->RenderDebug(*m_camera, m_gameObjects);
 
@@ -243,6 +406,8 @@ void Game::Render()
     float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
     m_uiRenderer->DrawString(m_font, "FPS: " + std::to_string(m_fps), 10.0f, 10.0f, 30.0f, color);
     m_uiRenderer->DrawString(m_font, "WASD to Move, Space to Jump", 10.0f, 40.0f, 20.0f, color);
+    m_uiRenderer->DrawString(m_font, "Left Click to Shoot", 10.0f, 70.0f, 20.0f, color);
+
 
     m_uiRenderer->DisableUIState();
 

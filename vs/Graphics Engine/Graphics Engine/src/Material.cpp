@@ -19,6 +19,11 @@ Material::Material(
 
 void Material::Bind(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialConstantBuffer) const
 {
+	WCHAR buffer[256];
+	swprintf_s(buffer, L"Material::Bind - m_textureSRV: 0x%p, m_normalSRV: 0x%p, psMaterialConstantBuffer: 0x%p\n", 
+		m_textureSRV.Get(), m_normalSRV.Get(), psMaterialConstantBuffer);
+	OutputDebugString(buffer);
+
 	// Bind the material properties
 	context->UpdateSubresource(psMaterialConstantBuffer, 0, nullptr, &m_data, 0, 0);
 	context->PSSetConstantBuffers(1, 1, &psMaterialConstantBuffer);

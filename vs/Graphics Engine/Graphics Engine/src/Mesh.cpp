@@ -23,6 +23,10 @@ Mesh::Mesh(ID3D11Device* device, const std::vector<Vertex>& vertices, const std:
 
 void Mesh::Draw(ID3D11DeviceContext* context) const
 {
+    WCHAR buffer[256];
+    swprintf_s(buffer, L"Mesh::Draw - m_vertexBuffer: 0x%p, m_indexBuffer: 0x%p\n", m_vertexBuffer.Get(), m_indexBuffer.Get());
+    OutputDebugString(buffer);
+
     UINT stride = sizeof(Vertex);
     UINT offset = 0;
     context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), &stride, &offset);

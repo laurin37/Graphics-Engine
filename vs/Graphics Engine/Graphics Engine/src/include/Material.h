@@ -26,6 +26,7 @@ public:
 	~Material() = default;
 
 	void Bind(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialConstantBuffer) const;
+	void SetDiffuseColor(const DirectX::XMFLOAT4& color) { m_data.color = color; } // New method
 
 private:
 	CBuffer_PS_Material m_data;

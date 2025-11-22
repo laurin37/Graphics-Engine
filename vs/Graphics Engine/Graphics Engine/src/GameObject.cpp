@@ -1,31 +1,30 @@
 #include "include/GameObject.h"
 #include "include/EnginePCH.h"
+#include "include/Transform.h" // Include Transform.h
 
 using namespace DirectX;
 
 GameObject::GameObject(Mesh* mesh, std::shared_ptr<Material> material)
-    : m_pMesh(mesh), 
+    : m_mesh(mesh), 
       m_material(material), 
-      m_pos({0,0,0}), 
-      m_rot({0,0,0}), 
-      m_scale({1,1,1}),
-      m_boundingBox({ {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f} })
+      m_boundingBox({ {0.0f, 0.0f, 0.0f}, {0.5f, 0.5f, 0.5f} }),
+      m_name(L"GameObject") // Default name
 {}
 
-void GameObject::SetPosition(float x, float y, float z) { m_pos = { x, y, z }; }
-void GameObject::SetRotation(float x, float y, float z) { m_rot = { x, y, z }; }
-void GameObject::SetScale(float x, float y, float z) { m_scale = { x, y, z }; }
-
-DirectX::XMFLOAT3 GameObject::GetPosition() const
+void GameObject::SetMesh(Mesh* mesh)
 {
-    return m_pos;
+    m_mesh = mesh;
+    WCHAR buffer[256];
+    swprintf_s(buffer, L"GameObject::SetMesh - Mesh address: 0x%p\n", mesh);
+    OutputDebugString(buffer);
 }
 
-XMMATRIX GameObject::GetWorldMatrix() const
+void GameObject::SetMaterial(std::shared_ptr<Material> material)
 {
-    return XMMatrixScaling(m_scale.x, m_scale.y, m_scale.z) *
-           XMMatrixRotationRollPitchYaw(m_rot.x, m_rot.y, m_rot.z) *
-           XMMatrixTranslation(m_pos.x, m_pos.y, m_pos.z);
+    m_material = material;
+    WCHAR buffer[256];
+    swprintf_s(buffer, L"GameObject::SetMaterial - Material address: 0x%p\n", material.get());
+    OutputDebugString(buffer);
 }
 
 void GameObject::Draw(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialConstantBuffer) const
@@ -35,9 +34,9 @@ void GameObject::Draw(ID3D11DeviceContext* context, ID3D11Buffer* psMaterialCons
         m_material->Bind(context, psMaterialConstantBuffer);
     }
 
-    if (m_pMesh)
+    if (m_mesh)
     {
-        m_pMesh->Draw(context);
+        m_mesh->Draw(context);
     }
 }
 
@@ -54,14 +53,14 @@ AABB GameObject::GetWorldBoundingBox() const
     // 8 corners of the box and find the new min/max, which is more expensive.
     
     // 1. Scale the extents
-    worldBox.extents.x = m_scale.x * m_boundingBox.extents.x;
-    worldBox.extents.y = m_scale.y * m_boundingBox.extents.y;
-    worldBox.extents.z = m_scale.z * m_boundingBox.extents.z;
+    worldBox.extents.x = m_transform.GetScale().x * m_boundingBox.extents.x;
+    worldBox.extents.y = m_transform.GetScale().y * m_boundingBox.extents.y;
+    worldBox.extents.z = m_transform.GetScale().z * m_boundingBox.extents.z;
 
     // 2. Add scaled local center offset to world position
-    worldBox.center.x = m_pos.x + (m_scale.x * m_boundingBox.center.x);
-    worldBox.center.y = m_pos.y + (m_scale.y * m_boundingBox.center.y);
-    worldBox.center.z = m_pos.z + (m_scale.z * m_boundingBox.center.z);
+    worldBox.center.x = m_transform.GetPosition().x + (m_transform.GetScale().x * m_boundingBox.center.x);
+    worldBox.center.y = m_transform.GetPosition().y + (m_transform.GetScale().y * m_boundingBox.center.y);
+    worldBox.center.z = m_transform.GetPosition().z + (m_transform.GetScale().z * m_boundingBox.center.z);
     
     return worldBox;
 }

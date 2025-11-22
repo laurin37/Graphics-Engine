@@ -12,6 +12,12 @@ XMVECTOR Camera::GetPosition() const { return XMLoadFloat3(&m_pos); }
 XMFLOAT3 Camera::GetPositionFloat3() const { return m_pos; }
 XMVECTOR Camera::GetRotation() const { return XMLoadFloat3(&m_rot); }
 
+DirectX::XMVECTOR Camera::GetForward() const
+{
+    XMMATRIX rotMatrix = XMMatrixRotationRollPitchYaw(m_rot.x, m_rot.y, m_rot.z);
+    return XMVector3TransformCoord(XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f), rotMatrix);
+}
+
 void Camera::AdjustPosition(float x, float y, float z)
 {
     XMVECTOR move = XMVectorSet(x, y, z, 0.0f);

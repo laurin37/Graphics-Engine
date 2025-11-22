@@ -1,10 +1,11 @@
 #include "include/Player.h"
 #include "include/PhysicsSystem.h" 
+#include "include/Game.h" // Include Game.h
 
 using namespace DirectX;
 
 Player::Player(Mesh* mesh, std::shared_ptr<Material> material, Camera* camera)
-    : GameObject(mesh, material), m_camera(camera), m_velocity({ 0,0,0 }), m_onGround(false)
+    : GameObject(mesh, material), m_camera(camera)
 {
     // Set a smaller bounding box for the player (human size)
     AABB playerBox;
@@ -15,6 +16,31 @@ Player::Player(Mesh* mesh, std::shared_ptr<Material> material, Camera* camera)
 
 void Player::Update(float deltaTime, Input& input, const std::vector<std::unique_ptr<GameObject>>& worldObjects)
 {
+    // Update the gun
+    if (m_gunPtr)
+    {
+        // Sync gun with camera
+        XMVECTOR camPos = m_camera->GetPosition();
+        XMVECTOR camRot = m_camera->GetRotation();
+
+        // Offset: 0.5 right, -0.5 down, 1.0 forward (relative to camera)
+        XMVECTOR offset = XMVectorSet(0.5f, -0.5f, 1.0f, 0.0f);
+
+        XMMATRIX rotMat = XMMatrixRotationRollPitchYawFromVector(camRot);
+        XMVECTOR offsetRotated = XMVector3TransformCoord(offset, rotMat);
+        XMVECTOR gunPos = XMVectorAdd(camPos, offsetRotated);
+
+        XMFLOAT3 gunPosF3;
+        XMStoreFloat3(&gunPosF3, gunPos);
+        m_gunPtr->SetPosition(gunPosF3.x, gunPosF3.y, gunPosF3.z);
+
+        XMFLOAT3 camRotF3;
+        XMStoreFloat3(&camRotF3, camRot);
+        m_gunPtr->SetRotation(camRotF3.x, camRotF3.y, camRotF3.z);
+
+        m_gunPtr->Update(deltaTime);
+    }
+
     // 1. Handle Rotation (Mouse Look)
     float rotSpeed = 0.5f * deltaTime;
     float mouseDx = static_cast<float>(input.GetMouseDeltaX()) * rotSpeed;
@@ -101,4 +127,29 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
     // 5. Update Camera Position to match Player Head
     XMFLOAT3 finalPos = GetPosition();
     m_camera->SetPosition(finalPos.x, finalPos.y + 0.8f, finalPos.z); // +0.8f for eye height
+}
+
+void Player::Shoot(Game* gameInstance)
+{
+    // Check if enough time has passed since the last shot
+    // This logic will be handled by the Gun class, which has m_lastShotTime and m_fireRate.
+    // The Gun's Update method will advance m_lastShotTime.
+
+    // Get bullet starting position (in front of the player/camera)
+    XMVECTOR camPos = m_camera->GetPosition(); // Corrected
+    XMVECTOR camForward = m_camera->GetForward();
+    
+    // Offset bullet origin slightly from player to avoid immediate collision with player's own AABB
+    XMVECTOR bulletStartPosVec = XMVectorAdd(camPos, XMVectorScale(camForward, 1.0f)); 
+    
+    XMFLOAT3 bulletStartPos;
+    XMStoreFloat3(&bulletStartPos, bulletStartPosVec);
+
+    XMFLOAT3 bulletDirection;
+    XMStoreFloat3(&bulletDirection, camForward);
+
+    if (m_gunPtr)
+    {
+        m_gunPtr->Shoot(gameInstance, bulletStartPos, bulletDirection); // Corrected: pass gameInstance
+    }
 }

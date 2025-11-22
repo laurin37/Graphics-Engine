@@ -11,6 +11,9 @@
 #include "UIRenderer.h"
 #include "Player.h"        // [NEW]
 #include "PhysicsSystem.h" // [NEW]
+#include "Bullet.h"        // Include Bullet header
+#include "Gun.h"           // Include Gun header
+#include "HealthObject.h"  // Include HealthObject header
 #include <memory>
 #include <vector>
 #include <chrono>
@@ -26,10 +29,17 @@ public:
     bool Initialize(HINSTANCE hInstance, int nCmdShow);
     void Run();
 
+    // New method to spawn a bullet
+    void SpawnBullet(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& direction, float speed, float damage);
+
 private:
     void Update(float deltaTime);
     void Render();
     void LoadScene();
+
+    // Helper method to add a bullet to internal vectors
+    void AddBulletInternal(std::unique_ptr<Bullet> bullet);
+
 
     // System Objects
     Window m_window;
@@ -44,8 +54,15 @@ private:
     std::unique_ptr<Camera> m_camera;
     SimpleFont m_font;
 
+    // Bullet and HealthObject assets (stored in Game to be easily accessible)
+    std::shared_ptr<Mesh> m_bulletMesh;
+    std::shared_ptr<Material> m_bulletMaterial;
+    std::shared_ptr<Mesh> m_healthObjectMesh;
+    std::shared_ptr<Material> m_healthObjectMaterial;
+
     // The actual objects in the scene (Owns the Player memory too)
     std::vector<std::unique_ptr<GameObject>> m_gameObjects;
+    std::vector<Bullet*> m_bullets; // New: To manage active bullets (non-owning pointers)
 
     // Lighting
     DirectionalLight m_dirLight;
