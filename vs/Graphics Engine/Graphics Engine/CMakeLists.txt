@@ -17,12 +17,14 @@ set(SOURCE_FILES
     src/Camera.cpp
     src/Collider.cpp
     src/Crosshair.cpp
+    src/FontLoader.cpp
     src/Game.cpp
     src/GameObject.cpp
     src/Graphics.cpp
     src/Gun.cpp
     src/HealthObject.cpp
     src/Input.cpp
+    src/Logger.cpp
     src/Material.cpp
     src/Mesh.cpp
     src/ModelLoader.cpp
