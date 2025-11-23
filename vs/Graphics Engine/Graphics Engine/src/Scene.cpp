@@ -9,6 +9,7 @@
 #include "include/Gun.h"
 #include "include/HealthObject.h"
 #include "include/Input.h"
+#include "include/RenderingConstants.h"
 
 Scene::Scene(AssetManager* assetManager, Graphics* graphics)
     : m_assetManager(assetManager), m_graphics(graphics),
@@ -334,14 +335,9 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer)
 
     uiRenderer->EnableUIState();
 
-    // UI text disabled for cleaner view
-    // float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    // uiRenderer->DrawString(m_font, "WASD to Move, Space to Jump", 10.0f, 40.0f, 20.0f, color);
-    // uiRenderer->DrawString(m_font, "Left Click to Shoot", 10.0f, 70.0f, 20.0f, color);
-
     if (m_crosshair)
     {
-        m_crosshair->Draw(uiRenderer, m_font, 1280.0f, 720.0f); 
+        m_crosshair->Draw(uiRenderer, m_font, RenderingConstants::DEFAULT_SCREEN_WIDTH, RenderingConstants::DEFAULT_SCREEN_HEIGHT);
     }
 
     uiRenderer->DisableUIState();

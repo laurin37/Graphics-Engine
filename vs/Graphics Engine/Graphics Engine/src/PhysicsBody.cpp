@@ -2,8 +2,10 @@
 #include "include/GameObject.h"
 #include "include/PhysicsSystem.h"
 #include "include/Bullet.h"
+#include "include/PhysicsConstants.h"
 
 using namespace DirectX;
+using namespace PhysicsConstants;
 
 PhysicsBody::PhysicsBody()
     : velocity(0.0f, 0.0f, 0.0f), 
@@ -113,11 +115,9 @@ void PhysicsBody::ResolveCollisions(float dt, GameObject* owner,
                                     const std::vector<std::unique_ptr<GameObject>>& worldObjects,
                                     const std::vector<GameObject*>& ignoreList)
 {
-    // Clamp deltaTime for safety
-    const float MIN_DT = 1.0f / 240.0f;
-    const float MAX_DT = 1.0f / 30.0f;
-    if (dt < MIN_DT) dt = MIN_DT;
-    if (dt > MAX_DT) dt = MAX_DT;
+    // Clamp deltaTime for safety to prevent physics explosions
+    if (dt < MIN_DELTA_TIME) dt = MIN_DELTA_TIME;
+    if (dt > MAX_DELTA_TIME) dt = MAX_DELTA_TIME;
     
     DirectX::XMFLOAT3 startPos = owner->GetPosition();
     
@@ -149,8 +149,7 @@ void PhysicsBody::ResolveCollisions(float dt, GameObject* owner,
             
             // If we're standing on top of this object, allow horizontal movement
             // (player bottom is at or slightly above object top)
-            const float standingTolerance = 0.1f;
-            if (ownerBottom >= objTop - standingTolerance) {
+            if (ownerBottom >= objTop - STANDING_TOLERANCE) {
                 // Standing on top - allow movement
                 continue;
             }
@@ -167,14 +166,13 @@ void PhysicsBody::ResolveCollisions(float dt, GameObject* owner,
     startPos = owner->GetPosition();
     
     // Safety: respawn if fallen too far
-    if (startPos.y < -20.0f) {
-        owner->SetPosition(0.0f, 5.0f, 0.0f);
+    if (startPos.y < RESPAWN_THRESHOLD_Y) {
+        owner->SetPosition(0.0f, RESPAWN_HEIGHT, 0.0f);
         velocity = { 0.0f, 0.0f, 0.0f };
         return;
     }
     
     float intendedY = startPos.y + velocity.y * dt;
-    const float skinWidth = 0.005f;
     bool collisionDetected = false;
     
     AABB ownerBox = owner->GetWorldBoundingBox();
@@ -224,11 +222,11 @@ void PhysicsBody::CheckGroundState(GameObject* owner,
                                    const std::vector<std::unique_ptr<GameObject>>& worldObjects,
                                    const std::vector<GameObject*>& ignoreList)
 {
-    const float skinWidth = 0.005f;
     isGrounded = false;
     
+    // Probe slightly below player to check for ground
     AABB footProbe = owner->GetWorldBoundingBox();
-    footProbe.center.y -= (skinWidth * 3.0f);
+    footProbe.center.y -= GROUND_PROBE_DISTANCE;
     
     for (const auto& obj : worldObjects) {
         // Check ignore list

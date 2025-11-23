@@ -175,10 +175,12 @@
     <ClInclude Include="src\include\MeshUtils.h" />
     <ClInclude Include="src\include\ModelLoader.h" />
     <ClInclude Include="src\include\PhysicsBody.h" />
+    <ClInclude Include="src\include\PhysicsConstants.h" />
     <ClInclude Include="src\include\PhysicsSystem.h" />
     <ClInclude Include="src\include\Player.h" />
     <ClInclude Include="src\include\PostProcess.h" />
     <ClInclude Include="src\include\Renderer.h" />
+    <ClInclude Include="src\include\RenderingConstants.h" />
     <ClInclude Include="src\include\Scene.h" />
     <ClInclude Include="src\include\Shader.h" />
     <ClInclude Include="src\include\SimpleFont.h" />

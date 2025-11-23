@@ -70,7 +70,6 @@ private:
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_samplerState;
 
     // Shadow Mapping objects
-    const int SHADOW_MAP_SIZE = 2048;
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_shadowMapTexture;
     Microsoft::WRL::ComPtr<ID3D11DepthStencilView> m_shadowDSV;
     Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_shadowSRV;

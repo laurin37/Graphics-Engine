@@ -10,10 +10,13 @@
 #include "include/PostProcess.h"
 #include "include/Material.h"
 #include "include/Collision.h"
+#include "include/RenderingConstants.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3dcompiler.lib")
+
+using namespace RenderingConstants;
 
 Renderer::Renderer() = default;
 Renderer::~Renderer() = default;
@@ -36,7 +39,8 @@ void Renderer::RenderFrame(
     ID3D11RenderTargetView* rtv = m_graphics->GetRenderTargetView().Get();
     
     // 1. Render shadows first, as it uses its own render targets
-    DirectX::XMMATRIX lightView, lightProj;
+    DirectX::XMMATRIX lightView = DirectX::XMMatrixIdentity();
+    DirectX::XMMATRIX lightProj = DirectX::XMMatrixIdentity();
     RenderShadowPass(gameObjects, lightView, lightProj);
 
     // 2. Set main back buffer as render target and clear it
