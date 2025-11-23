@@ -2,6 +2,8 @@
 #include "EnginePCH.h"
 #include <memory>
 #include <wrl/client.h>
+#include <DirectXMath.h>
+#include <d3d11.h>
 
 struct ID3D11Device;
 struct ID3D11DeviceContext;
@@ -9,6 +11,7 @@ struct ID3D11Texture2D;
 struct ID3D11RenderTargetView;
 struct ID3D11ShaderResourceView;
 struct ID3D11SamplerState;
+struct ID3D11Buffer;
 class VertexShader;
 class PixelShader;
 

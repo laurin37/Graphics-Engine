@@ -48,7 +48,7 @@ void PostProcess::Init(ID3D11Device* device, int width, int height)
     
     // 5. Initialize Bloom Effect
     m_bloomEffect = std::make_unique<BloomEffect>();
-    m_bloomEffect->Init(device, width, height, 1.0f, 0.04f);
+    m_bloomEffect->Init(device, width, height, 0.8f, 0.06f); // Lower threshold, slightly higher intensity for visible bloom
 }
 
 void PostProcess::Bind(ID3D11DeviceContext* context, ID3D11DepthStencilView* dsv)

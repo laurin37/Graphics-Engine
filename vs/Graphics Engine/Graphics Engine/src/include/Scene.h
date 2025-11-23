@@ -59,6 +59,12 @@ private:
     std::shared_ptr<Material> m_matRoof;
     std::shared_ptr<Material> m_matGold;
     std::shared_ptr<Material> m_matGlowing;
+    
+    // Individual orb materials (emissive)
+    std::shared_ptr<Material> m_matOrbRed;
+    std::shared_ptr<Material> m_matOrbGreen;
+    std::shared_ptr<Material> m_matOrbBlue;
+    std::shared_ptr<Material> m_matOrbOrange;
 
     // Bullet and HealthObject assets
     std::shared_ptr<Mesh> m_bulletMesh;

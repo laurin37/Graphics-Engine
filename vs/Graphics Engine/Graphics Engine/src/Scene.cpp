@@ -44,10 +44,10 @@ void Scene::SetupLighting()
 
     m_pointLights.resize(MAX_POINT_LIGHTS);
     // Glowing orb lights: {position(x,y,z,range), color(r,g,b,intensity), attenuation(const,linear,quad,pad)}
-    m_pointLights[0] = { {0.0f, 2.0f, 0.0f, 15.0f}, {1.0f, 0.5f, 0.5f, 2.0f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Red-ish
-    m_pointLights[1] = { {0.0f, 2.0f, 0.0f, 15.0f}, {0.5f, 1.0f, 0.5f, 2.0f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Green-ish
-    m_pointLights[2] = { {0.0f, 2.0f, 0.0f, 15.0f}, {0.5f, 0.5f, 1.0f, 2.0f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Blue-ish
-    m_pointLights[3] = { {0.0f, 2.0f, 0.0f, 15.0f}, {1.0f, 0.8f, 0.5f, 2.0f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Orange-ish
+    m_pointLights[0] = { {0.0f, 2.0f, 0.0f, 15.0f}, {1.0f, 0.5f, 0.5f, 2.5f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Red-ish
+    m_pointLights[1] = { {0.0f, 2.0f, 0.0f, 15.0f}, {0.5f, 1.0f, 0.5f, 2.5f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Green-ish
+    m_pointLights[2] = { {0.0f, 2.0f, 0.0f, 15.0f}, {0.5f, 0.5f, 1.0f, 2.5f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Blue-ish
+    m_pointLights[3] = { {0.0f, 2.0f, 0.0f, 15.0f}, {1.0f, 0.8f, 0.5f, 2.5f}, {0.5f, 0.05f, 0.005f, 0.0f} };  // Orange-ish
 }
 
 void Scene::LoadAssets()
@@ -102,7 +102,13 @@ void Scene::CreateMaterials()
     m_matPillar = std::make_shared<Material>(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), 0.8f, 32.0f, texMetal, normMetal);
     m_matRoof = std::make_shared<Material>(DirectX::XMFLOAT4(0.8f, 0.1f, 0.1f, 1.0f), 0.8f, 32.0f);
     m_matGold = std::make_shared<Material>(DirectX::XMFLOAT4(1.0f, 0.8f, 0.0f, 1.0f), 1.0f, 64.0f);
-    m_matGlowing = std::make_shared<Material>(DirectX::XMFLOAT4(0.2f, 1.0f, 1.0f, 1.0f), 1.0f, 128.0f);
+    m_matGlowing = std::make_shared<Material>(DirectX::XMFLOAT4(2.0f, 2.0f, 2.0f, 1.0f), 1.0f, 256.0f); // Bright white emissive (specPower>100 triggers emit)
+    
+    // Create colored emissive materials for orbs (matching point light colors)
+    m_matOrbRed = std::make_shared<Material>(DirectX::XMFLOAT4(1.5f, 0.8f, 0.8f, 1.0f), 1.0f, 256.0f);    // Red-ish
+    m_matOrbGreen = std::make_shared<Material>(DirectX::XMFLOAT4(0.8f, 1.5f, 0.8f, 1.0f), 1.0f, 256.0f);  // Green-ish
+    m_matOrbBlue = std::make_shared<Material>(DirectX::XMFLOAT4(0.8f, 0.8f, 1.5f, 1.0f), 1.0f, 256.0f);   // Blue-ish
+    m_matOrbOrange = std::make_shared<Material>(DirectX::XMFLOAT4(1.5f, 1.2f, 0.8f, 1.0f), 1.0f, 256.0f); // Orange-ish
     
     // Store bullet and health object materials
     m_bulletMesh = m_meshSphere;
@@ -185,9 +191,11 @@ void Scene::SpawnSceneObjects()
 
     // --- Create Floating Orbs ---
     float orbRadius = 3.0f;
+    std::shared_ptr<Material> orbMaterials[4] = { m_matOrbRed, m_matOrbGreen, m_matOrbBlue, m_matOrbOrange };
+    
     for (int i = 0; i < 4; i++)
     {
-        auto orb = std::make_unique<GameObject>(m_meshSphere.get(), m_matGlowing);
+        auto orb = std::make_unique<GameObject>(m_meshSphere.get(), orbMaterials[i]);
         orb->SetScale(0.5f, 0.5f, 0.5f);
         
         float angle = (DirectX::XM_2PI / 4.0f) * i;
