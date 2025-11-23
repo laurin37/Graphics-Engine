@@ -2,9 +2,11 @@
 
 SimpleFont::SimpleFont() {}
 
-void SimpleFont::Initialize(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fontTexture)
+void SimpleFont::Initialize(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fontTexture, const std::vector<Glyph>& glyphs)
 {
     m_fontTexture = fontTexture;
+    m_glyphs = glyphs;
+    m_isMonospace = m_glyphs.empty();
 }
 
 ID3D11ShaderResourceView* SimpleFont::GetTexture() const
@@ -20,8 +22,9 @@ std::vector<SpriteVertex> SimpleFont::GenerateVerticesForString(const std::strin
     float curX = x;
     float curY = y;
 
-    const float charStep = size * 0.6f;
-    const float uvStep = 1.0f / 16.0f;
+    // Legacy monospace fallback
+    const float monoCharStep = size * 0.6f;
+    const float monoUvStep = 1.0f / 16.0f;
 
     for (char c : text)
     {
@@ -33,45 +36,81 @@ std::vector<SpriteVertex> SimpleFont::GenerateVerticesForString(const std::strin
         }
 
         unsigned char uc = static_cast<unsigned char>(c);
-        int col = uc % 16;
-        int row = uc / 16;
+        
+        float u, v, u2, v2;
+        float w, h, xOff, yOff, advance;
 
-        float u = col * uvStep;
-        float v = row * uvStep;
+        if (m_isMonospace)
+        {
+            // Legacy 16x16 grid logic
+            int col = uc % 16;
+            int row = uc / 16;
+            u = col * monoUvStep;
+            v = row * monoUvStep;
+            u2 = u + monoUvStep;
+            v2 = v + monoUvStep;
+            w = size;
+            h = size;
+            xOff = 0;
+            yOff = 0;
+            advance = monoCharStep;
+        }
+        else
+        {
+            // Variable width logic
+            if (uc >= m_glyphs.size()) uc = '?'; // Safety fallback
+            if (uc >= m_glyphs.size()) continue;
 
-        SpriteVertex v0, v1, v2, v3;
+            const Glyph& g = m_glyphs[uc];
+            u = g.u;
+            v = g.v;
+            u2 = g.u2;
+            v2 = g.v2;
+            
+            // Scale glyph dimensions to target font size
+            // Assuming glyphs were baked at a reference size (e.g. 64px)
+            float scale = size / 64.0f; 
+            
+            w = g.width * scale;
+            h = g.height * scale;
+            xOff = g.xOffset * scale;
+            yOff = g.yOffset * scale;
+            advance = g.xAdvance * scale;
+        }
+
+        SpriteVertex sv0, sv1, sv2, sv3;
 
         // Top-Left
-        v0.pos = { curX, curY, 0.0f };
-        v0.uv = { u, v };
-        v0.color = { color[0], color[1], color[2], color[3] };
+        sv0.pos = { curX + xOff, curY + yOff, 0.0f };
+        sv0.uv = { u, v };
+        sv0.color = { color[0], color[1], color[2], color[3] };
 
         // Top-Right
-        v1.pos = { curX + size, curY, 0.0f };
-        v1.uv = { u + uvStep, v };
-        v1.color = { color[0], color[1], color[2], color[3] };
+        sv1.pos = { curX + xOff + w, curY + yOff, 0.0f };
+        sv1.uv = { u2, v };
+        sv1.color = { color[0], color[1], color[2], color[3] };
 
         // Bottom-Left
-        v2.pos = { curX, curY + size, 0.0f };
-        v2.uv = { u, v + uvStep };
-        v2.color = { color[0], color[1], color[2], color[3] };
+        sv2.pos = { curX + xOff, curY + yOff + h, 0.0f };
+        sv2.uv = { u, v2 };
+        sv2.color = { color[0], color[1], color[2], color[3] };
 
         // Bottom-Right
-        v3.pos = { curX + size, curY + size, 0.0f };
-        v3.uv = { u + uvStep, v + uvStep };
-        v3.color = { color[0], color[1], color[2], color[3] };
+        sv3.pos = { curX + xOff + w, curY + yOff + h, 0.0f };
+        sv3.uv = { u2, v2 };
+        sv3.color = { color[0], color[1], color[2], color[3] };
         
         // Triangle 1
-        vertices.push_back(v0);
-        vertices.push_back(v1);
-        vertices.push_back(v2);
+        vertices.push_back(sv0);
+        vertices.push_back(sv1);
+        vertices.push_back(sv2);
 
         // Triangle 2
-        vertices.push_back(v2);
-        vertices.push_back(v1);
-        vertices.push_back(v3);
+        vertices.push_back(sv2);
+        vertices.push_back(sv1);
+        vertices.push_back(sv3);
 
-        curX += charStep;
+        curX += advance;
     }
 
     return vertices;

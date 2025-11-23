@@ -10,6 +10,7 @@
 #include "include/HealthObject.h"
 #include "include/Input.h"
 #include "include/RenderingConstants.h"
+#include "include/FontLoader.h"
 
 Scene::Scene(AssetManager* assetManager, Graphics* graphics)
     : m_assetManager(assetManager), m_graphics(graphics),
@@ -65,9 +66,23 @@ void Scene::LoadAssets()
     auto normMetal = m_assetManager->LoadTexture(L"Assets/Textures/blue_metal_plate_disp_4k.png");
 
     // Generate debug font
+    // Generate debug font or load custom font
     if (m_graphics) {
-        auto debugFontTex = TextureLoader::CreateDebugFont(m_graphics->GetDevice().Get(), m_graphics->GetContext().Get());
-        m_font.Initialize(debugFontTex);
+        try {
+            // Try to load custom TTF font
+            // Note: "Minecraft" is the likely internal face name for Minecraft.ttf
+            auto fontData = FontLoader::Load(m_graphics->GetDevice().Get(), m_graphics->GetContext().Get(), L"Assets/Textures/bitmap/Minecraft.ttf", L"Minecraft", 32.0f);
+            m_font.Initialize(fontData.texture, fontData.glyphs);
+            LOG_INFO("Loaded custom font: Minecraft.ttf");
+        }
+        catch (const std::exception& e) {
+            LOG_WARNING(std::string("Failed to load custom font: ") + e.what());
+            
+            // Fallback to generated debug font
+            auto debugFontTex = TextureLoader::CreateDebugFont(m_graphics->GetDevice().Get(), m_graphics->GetContext().Get());
+            m_font.Initialize(debugFontTex); // No glyphs = monospace fallback
+            LOG_INFO("Loaded default debug font");
+        }
     }
     
     // Store materials will reference these textures
