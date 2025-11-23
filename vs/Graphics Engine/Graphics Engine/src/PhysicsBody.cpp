@@ -135,7 +135,27 @@ void PhysicsBody::ResolveCollisions(float dt, GameObject* owner,
         }
         if (shouldIgnore || obj.get() == owner) continue;
         
-        if (PhysicsSystem::AABBIntersects(owner->GetWorldBoundingBox(), obj->GetWorldBoundingBox())) {
+        AABB ownerBox = owner->GetWorldBoundingBox();
+        AABB objBox = obj->GetWorldBoundingBox();
+        
+        // Check for horizontal overlap
+        bool xOverlap = fabsf(ownerBox.center.x - objBox.center.x) <= (ownerBox.extents.x + objBox.extents.x);
+        bool zOverlap = fabsf(ownerBox.center.z - objBox.center.z) <= (ownerBox.extents.z + objBox.extents.z);
+        
+        if (xOverlap && zOverlap) {
+            // There's horizontal overlap - but is it a wall or are we standing on top?
+            float ownerBottom = ownerBox.center.y - ownerBox.extents.y;
+            float objTop = objBox.center.y + objBox.extents.y;
+            
+            // If we're standing on top of this object, allow horizontal movement
+            // (player bottom is at or slightly above object top)
+            const float standingTolerance = 0.1f;
+            if (ownerBottom >= objTop - standingTolerance) {
+                // Standing on top - allow movement
+                continue;
+            }
+            
+            // Otherwise, it's a wall collision - block movement
             owner->SetPosition(startPos.x, startPos.y, startPos.z);
             velocity.x = 0;
             velocity.z = 0;

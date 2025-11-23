@@ -1,6 +1,7 @@
 #include "include/GameObject.h"
 #include "include/EnginePCH.h"
 #include "include/Transform.h"
+#include "include/Collider.h"
 
 using namespace DirectX;
 
@@ -68,5 +69,12 @@ AABB GameObject::GetWorldBoundingBox() const
 
 void GameObject::GenerateCollider(ColliderType type)
 {
-    // Stub for now - will implement properly in Scene integration phase
+    // Use Collider temporarily to calculate bounds from mesh
+    Collider tempCollider;
+    if (m_mesh) {
+        tempCollider.GenerateFromMesh(m_mesh, type);
+        
+        // Store in legacy bounding box for now
+        m_boundingBox = tempCollider.GetLocalAABB();
+    }
 }

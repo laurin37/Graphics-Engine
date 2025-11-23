@@ -92,18 +92,21 @@ void Scene::Load()
     // Positioned away from pillars (pillars are at ±6, ±6)
     auto healthObj1 = std::make_unique<HealthObject>(100.0f, DirectX::XMFLOAT3(10.0f, 1.0f, 0.0f));
     healthObj1->SetMesh(m_healthObjectMesh.get());
-    healthObj1->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial)); 
+    healthObj1->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial));
+    healthObj1->GenerateCollider(); 
     m_gameObjects.push_back(std::move(healthObj1));
 
     auto healthObj2 = std::make_unique<HealthObject>(150.0f, DirectX::XMFLOAT3(-10.0f, 1.0f, 0.0f));
     healthObj2->SetMesh(m_healthObjectMesh.get());
     healthObj2->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial));
+    healthObj2->GenerateCollider();
     m_gameObjects.push_back(std::move(healthObj2));
 
     // --- Create Floor ---
     auto floor = std::make_unique<GameObject>(meshCube.get(), matFloor);
     floor->SetPosition(0.0f, -1.0f, 0.0f);
     floor->SetScale(100.0f, 0.1f, 100.0f);
+    floor->GenerateCollider(); // Auto-generate collision from cube mesh
     m_gameObjects.push_back(std::move(floor));
 
     // --- Create Pillars ---
@@ -115,11 +118,13 @@ void Scene::Load()
         auto pillar = std::make_unique<GameObject>(meshCylinder.get(), matPillar);
         pillar->SetPosition(pillarPositions[i][0], 1.0f, pillarPositions[i][1]);
         pillar->SetScale(1.0f, 2.0f, 1.0f);
+        pillar->GenerateCollider(); // Auto-generate collision
         m_gameObjects.push_back(std::move(pillar));
 
         auto roof = std::make_unique<GameObject>(meshCone.get(), matRoof);
         roof->SetPosition(pillarPositions[i][0], 3.5f, pillarPositions[i][1]);
         roof->SetScale(1.5f, 1.0f, 1.5f);
+        roof->GenerateCollider(); // Auto-generate collision
         m_gameObjects.push_back(std::move(roof));
     }
 
@@ -127,12 +132,14 @@ void Scene::Load()
     auto pedestal = std::make_unique<GameObject>(meshCube.get(), matPillar);
     pedestal->SetPosition(0.0f, 0.0f, 0.0f);
     pedestal->SetScale(2.0f, 1.0f, 2.0f);
+    pedestal->GenerateCollider();
     m_gameObjects.push_back(std::move(pedestal));
 
     // --- Create Artifact (Rotating Torus) ---
     auto artifact = std::make_unique<GameObject>(meshTorus.get(), matGold);
     artifact->SetPosition(0.0f, 2.0f, 0.0f);
     artifact->SetScale(1.5f, 1.5f, 1.5f);
+    artifact->GenerateCollider();
     artifact->SetRotation(DirectX::XM_PIDIV2, 0.0f, 0.0f);
     artifact->SetName(L"Artifact"); // CRITICAL: Name needed for animation lookup
     m_gameObjects.push_back(std::move(artifact));
