@@ -13,6 +13,7 @@ struct ID3D11SamplerState;
 struct ID3D11RasterizerState;
 class VertexShader;
 class PixelShader;
+class BloomEffect;
 
 class PostProcess
 {
@@ -35,4 +36,7 @@ private:
     std::unique_ptr<PixelShader> m_ps;
     Microsoft::WRL::ComPtr<ID3D11SamplerState> m_sampler; // Sampler for the scene texture.
     Microsoft::WRL::ComPtr<ID3D11RasterizerState> m_rsState;
+    
+    // Bloom effect
+    std::unique_ptr<BloomEffect> m_bloomEffect;
 };

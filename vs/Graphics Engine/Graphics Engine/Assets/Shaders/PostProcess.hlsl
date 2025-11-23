@@ -20,7 +20,9 @@ VS_OUTPUT VS_main(uint vertexID : SV_VertexID)
     return output;
 }
 
+
 Texture2D sceneTexture : register(t0);
+Texture2D bloomTexture : register(t1);
 SamplerState sceneSampler : register(s0);
 
 // ACES Filmic Tonemapping Curve
@@ -40,14 +42,18 @@ float4 PS_main(VS_OUTPUT input) : SV_TARGET
     // 1. Sample the scene texture
     float3 color = sceneTexture.Sample(sceneSampler, input.uv).rgb;
     
-    // 2. Apply ACES Filmic Tone Mapping
+    // 2. Sample and add bloom
+    float3 bloom = bloomTexture.Sample(sceneSampler, input.uv).rgb;
+    color += bloom;
+    
+    // 3. Apply ACES Filmic Tone Mapping
     color = ACESFilm(color);
 
-    // 3. Add a subtle vignette
+    // 4. Add a subtle vignette
     float vignette = 1.0 - dot(input.uv - 0.5, input.uv - 0.5) * 0.8f;
     color *= vignette;
 
-    // 4. Apply Gamma Correction
+    // 5. Apply Gamma Correction
     color = pow(color, 1.0f / 2.2f);
     
     return float4(color, 1.0f);

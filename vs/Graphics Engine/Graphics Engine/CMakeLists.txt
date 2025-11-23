@@ -6,19 +6,7 @@ project(GeminiDXEngine LANGUAGES CXX)
 
 # 3. Set C++ Standard to 23
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# 4. Explicitly list all source files
-# This ensures CMake always includes all files (GLOB_RECURSE can miss new files)
-set(SOURCE_FILES
-    src/main.cpp
-    src/AssetManager.cpp
-    src/Bullet.cpp
-    src/Camera.cpp
-    src/Collider.cpp
-    src/Crosshair.cpp
-    src/FontLoader.cpp
-    src/Game.cpp
+    src/BloomEffect.cpp
     src/GameObject.cpp
     src/Graphics.cpp
     src/Gun.cpp
