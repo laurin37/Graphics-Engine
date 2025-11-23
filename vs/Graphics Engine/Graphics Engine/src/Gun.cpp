@@ -3,7 +3,7 @@
 #include "include/Scene.h" // Include Scene header
 
 Gun::Gun(Mesh* mesh, std::shared_ptr<Material> material)
-    : GameObject(mesh, material), m_fireRate(0.2f), m_damage(10.0f), m_bulletSpeed(15.0f), m_lastShotTime(0.0f), m_owner(nullptr)
+    : GameObject(mesh, material), m_fireRate(0.2f), m_damage(10.0f), m_bulletSpeed(50.0f), m_lastShotTime(0.0f), m_owner(nullptr)
 {
 }
 

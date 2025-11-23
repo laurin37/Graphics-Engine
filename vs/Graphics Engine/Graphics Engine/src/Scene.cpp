@@ -180,6 +180,7 @@ void Scene::SpawnSceneObjects()
         float z = orbRadius * sinf(angle);
         orb->SetPosition(x, 2.0f, z);
         orb->SetName(L"Orb");
+        orb->GenerateCollider();  // Add hitboxes to orbs
         
         m_gameObjects.push_back(std::move(orb));
     }
@@ -203,7 +204,8 @@ void Scene::SpawnBullet(const DirectX::XMFLOAT3& position, const DirectX::XMFLOA
     if (m_bulletMesh) bullet->SetMesh(m_bulletMesh.get());
     if (m_bulletMaterial) bullet->SetMaterial(m_bulletMaterial);
 
-    bullet->SetScale(0.2f, 0.2f, 0.2f); 
+    bullet->SetScale(0.1f, 0.1f, 0.1f);  // Smaller, more realistic bullets
+    bullet->GenerateCollider(ColliderType::Sphere); // Add collider entity
     AddBulletInternal(std::move(bullet));
 }
 

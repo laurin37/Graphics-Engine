@@ -26,7 +26,7 @@ private:
     PhysicsBody m_physicsBody;
     
     // Player-specific constants
-    const float MOVE_SPEED = 5.0f;
+    const float MOVE_SPEED = 2.0f;  // Reduced from 5.0 for better control at high FPS
     const float JUMP_FORCE = 5.0f;
     
     // Helper methods

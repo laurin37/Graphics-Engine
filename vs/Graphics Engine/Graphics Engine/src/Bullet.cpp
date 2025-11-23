@@ -13,7 +13,7 @@ Bullet::Bullet()
     SetName(L"Bullet"); // Use SetName()
     AABB bulletBox;
     bulletBox.center = { 0.0f, 0.0f, 0.0f };
-    bulletBox.extents = { 0.15f, 0.15f, 0.15f }; // Increased for better hit detection
+    bulletBox.extents = { 0.1f, 0.1f, 0.1f }; // Match the visual scale
     SetBoundingBox(bulletBox);
 }
 
@@ -29,7 +29,7 @@ Bullet::Bullet(const XMFLOAT3& position, const XMFLOAT3& direction, float speed,
     SetName(L"Bullet"); // Use SetName()
     AABB bulletBox;
     bulletBox.center = { 0.0f, 0.0f, 0.0f };
-    bulletBox.extents = { 0.15f, 0.15f, 0.15f }; // Increased for better hit detection
+    bulletBox.extents = { 0.1f, 0.1f, 0.1f }; // Match the visual scale
     SetBoundingBox(bulletBox);
 }
 
