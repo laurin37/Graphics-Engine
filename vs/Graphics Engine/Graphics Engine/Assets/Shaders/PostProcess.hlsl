@@ -39,26 +39,21 @@ float3 ACESFilm(float3 x)
 
 float4 PS_main(VS_OUTPUT input) : SV_TARGET
 {
-    // === DEBUG: MAKE THIS SUPER OBVIOUS ===
-    // The entire screen should have a BLUE TINT if this shader is running
-    
     // 1. Sample the scene texture
     float3 color = sceneTexture.Sample(sceneSampler, input.uv).rgb;
     
-    // 2. Add OBVIOUS blue tint to prove this shader is running
-    color += float3(0.0, 0.0, 0.5); // Add blue
-    
-    // 3. Sample bloom texture
+    // 2. Sample and add bloom (will be black when bloom is disabled)
     float3 bloom = bloomTexture.Sample(sceneSampler, input.uv).rgb;
+    color += bloom * 2.0; // Strong bloom for obvious effect
     
-    // If bloom has any value, make screen turn YELLOW instead
-    float bloomIntensity = length(bloom);
-    if (bloomIntensity > 0.001)
-    {
-        color = float3(1, 1, 0); // BRIGHT YELLOW = bloom texture has data
-    }
-    
-    // Apply Gamma Correction
+    // 3. Apply ACES Filmic Tone Mapping
+    color = ACESFilm(color);
+
+    // 4. Add a subtle vignette
+    float vignette = 1.0 - dot(input.uv - 0.5, input.uv - 0.5) * 0.8f;
+    color *= vignette;
+
+    // 5. Apply Gamma Correction
     color = pow(color, 1.0f / 2.2f);
     
     return float4(color, 1.0f);
