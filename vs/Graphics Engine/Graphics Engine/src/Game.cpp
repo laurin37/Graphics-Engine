@@ -1,5 +1,5 @@
 #include "include/Game.h"
-#include "include/AssetManager.h"
+#include "include/AssetManager.h" 
 #include "include/UIRenderer.h"
 #include "include/Material.h"
 #include "include/ModelLoader.h"
@@ -8,6 +8,8 @@
 #include "include/Collision.h"
 #include "include/Player.h"
 #include "include/PhysicsSystem.h"
+#include "include/PostProcess.h"
+#include "include/Renderer.h"
 
 Game::Game()
 {
@@ -28,14 +30,11 @@ bool Game::Initialize(HINSTANCE hInstance, int nCmdShow)
         m_graphics.Initialize(m_window.GetHWND(), WINDOW_WIDTH, WINDOW_HEIGHT);
         m_input.Initialize(m_window.GetHWND());
 
-        // Create the asset manager
         m_assetManager = std::make_unique<AssetManager>(&m_graphics);
-
         m_renderer = std::make_unique<Renderer>();
         m_renderer->Initialize(&m_graphics, m_assetManager.get(), WINDOW_WIDTH, WINDOW_HEIGHT);
         m_uiRenderer = std::make_unique<UIRenderer>(&m_graphics);
 
-        // Create and Load Scene
         m_scene = std::make_unique<Scene>(m_assetManager.get(), &m_graphics);
         m_scene->Load();
     }
@@ -55,7 +54,7 @@ void Game::Run()
     {
         if (!m_window.ProcessMessages()) break;
 
-        auto currentTime = std::chrono::steady_clock::now();
+       auto currentTime = std::chrono::steady_clock::now();
         float deltaTime = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - m_lastTime).count();
         m_lastTime = currentTime;
 
@@ -75,7 +74,16 @@ void Game::Run()
 void Game::Update(float deltaTime)
 {
     m_input.Update();
-    if (m_input.IsKeyDown(VK_ESCAPE)) PostQuitMessage(0);
+
+    // Toggle bloom with B key
+    static bool bKeyWasPressed = false;
+    bool bKeyPressed = m_input.IsKeyDown('B');
+    if (bKeyPressed && !bKeyWasPressed)
+    {
+        m_renderer->GetPostProcess()->ToggleBloom();
+        LOG_INFO(m_renderer->GetPostProcess()->IsBloomEnabled() ? "Bloom: ON" : "Bloom: OFF");
+    }
+    bKeyWasPressed = bKeyPressed;
 
     if (m_scene)
     {

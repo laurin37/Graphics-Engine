@@ -11,6 +11,7 @@
 #include "include/Input.h"
 #include "include/RenderingConstants.h"
 #include "include/FontLoader.h"
+#include "include/PostProcess.h"
 
 Scene::Scene(AssetManager* assetManager, Graphics* graphics)
     : m_assetManager(assetManager), m_graphics(graphics),
@@ -392,6 +393,11 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer)
     std::string fpsString = "FPS: " + std::to_string(m_fps);
     float green[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
     uiRenderer->DrawString(m_font, fpsString, 10.0f, 10.0f, 32.0f, green);
+    
+    // Draw Bloom status
+    std::string bloomStatus = renderer->GetPostProcess()->IsBloomEnabled() ? "[B] Bloom: ON" : "[B] Bloom: OFF";
+    float yellow[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    uiRenderer->DrawString(m_font, bloomStatus, 10.0f, 50.0f, 24.0f, yellow);
 
     uiRenderer->DisableUIState();
 }

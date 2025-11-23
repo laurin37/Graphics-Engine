@@ -42,6 +42,8 @@ public:
         const Camera& camera,
         const std::vector<std::unique_ptr<GameObject>>& gameObjects);
 
+    // Accessors
+    PostProcess* GetPostProcess() { return m_postProcess.get(); }
 
 private:
     void InitPipeline(int width, int height);

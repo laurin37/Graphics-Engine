@@ -65,8 +65,13 @@ void PostProcess::Bind(ID3D11DeviceContext* context, ID3D11DepthStencilView* dsv
 
 void PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferRTV)
 {
-    // === STEP 1: Apply Bloom Effect ===
-    ID3D11ShaderResourceView* bloomSRV = m_bloomEffect->Apply(context, m_offScreenSRV.Get());
+    // === STEP 1: Apply Bloom Effect (if enabled) ===
+    ID3D11ShaderResourceView* bloomSRV = nullptr;
+    
+    if (m_bloomEnabled)
+    {
+        bloomSRV = m_bloomEffect->Apply(context, m_offScreenSRV.Get());
+    }
     
     // === STEP 2: Final Pass (Tone Mapping + Gamma Correction) ===
     
@@ -81,7 +86,7 @@ void PostProcess::Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* bac
     context->RSSetState(m_rsState.Get());
 
     // Bind the off-screen texture (scene) and bloom texture as shader resources
-    ID3D11ShaderResourceView* srvs[] = { m_offScreenSRV.Get(), bloomSRV };
+    ID3D11ShaderResourceView* srvs[] = { m_offScreenSRV.Get(), bloomSRV }; // bloomSRV can be nullptr
     context->PSSetShaderResources(0, 2, srvs);
     context->PSSetSamplers(0, 1, m_sampler.GetAddressOf());
 

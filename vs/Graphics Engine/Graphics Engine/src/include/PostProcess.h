@@ -28,6 +28,11 @@ public:
     void Bind(ID3D11DeviceContext* context, ID3D11DepthStencilView* dsv);
     void Draw(ID3D11DeviceContext* context, ID3D11RenderTargetView* backBufferRTV);
 
+    // Bloom control
+    void ToggleBloom() { m_bloomEnabled = !m_bloomEnabled; }
+    void SetBloomEnabled(bool enabled) { m_bloomEnabled = enabled; }
+    bool IsBloomEnabled() const { return m_bloomEnabled; }
+
 private:
     Microsoft::WRL::ComPtr<ID3D11Texture2D> m_offScreenTexture;
     Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_offScreenRTV;
@@ -39,4 +44,5 @@ private:
     
     // Bloom effect
     std::unique_ptr<BloomEffect> m_bloomEffect;
+    bool m_bloomEnabled = true; // Toggle for bloom on/off
 };
