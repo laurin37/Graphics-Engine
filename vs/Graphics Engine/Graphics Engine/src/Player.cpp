@@ -16,6 +16,15 @@ Player::Player(Mesh* mesh, std::shared_ptr<Material> material, Camera* camera)
 
 void Player::Update(float deltaTime, Input& input, const std::vector<std::unique_ptr<GameObject>>& worldObjects)
 {
+    // HYBRID APPROACH: Variable timestep with strict clamping for responsiveness + safety
+    // Clamp deltaTime to prevent huge jumps during lag
+    const float MIN_DT = 1.0f / 240.0f; // 4ms minimum
+    const float MAX_DT = 1.0f / 30.0f;  // 33ms maximum (30 FPS floor)
+    
+    float dt = deltaTime;
+    if (dt < MIN_DT) dt = MIN_DT;
+    if (dt > MAX_DT) dt = MAX_DT; // If game drops below 30 FPS, slow down time instead of tunneling
+    
     // Rotation
     float mouseSens = 0.002f;
     int dx = input.GetMouseDeltaX();
@@ -54,8 +63,8 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
         m_onGround = false;
     }
 
-    // Gravity with clamp to prevent tunneling
-    m_velocity.y += GRAVITY * deltaTime;
+    // Gravity with strict clamp
+    m_velocity.y += GRAVITY * dt;
     const float MAX_FALL_SPEED = -15.0f;
     if (m_velocity.y < MAX_FALL_SPEED) {
         m_velocity.y = MAX_FALL_SPEED;
@@ -64,7 +73,7 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
     DirectX::XMFLOAT3 startPos = GetPosition();
 
     // Move X/Z
-    SetPosition(startPos.x + m_velocity.x * deltaTime, startPos.y, startPos.z + m_velocity.z * deltaTime);
+    SetPosition(startPos.x + m_velocity.x * dt, startPos.y, startPos.z + m_velocity.z * dt);
     
     for (const auto& obj : worldObjects) {
         if (obj.get() == this || obj.get() == m_gunPtr || dynamic_cast<Bullet*>(obj.get())) continue;
@@ -82,7 +91,7 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
         return;
     }
 
-    float intendedY = startPos.y + m_velocity.y * deltaTime;
+    float intendedY = startPos.y + m_velocity.y * dt;
     const float skinWidth = 0.005f;
     bool collisionDetected = false;
 
@@ -118,7 +127,7 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
         SetPosition(startPos.x, intendedY, startPos.z);
     }
 
-    // Ground Check with penetration recovery
+    // Ground Check
     m_onGround = false;
     AABB footProbe = GetWorldBoundingBox();
     footProbe.center.y -= (skinWidth * 3.0f);
@@ -130,7 +139,6 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
         if (PhysicsSystem::AABBIntersects(footProbe, objBox)) {
             m_onGround = true;
             
-            // Emergency penetration recovery
             AABB currentBox = GetWorldBoundingBox();
             if (PhysicsSystem::AABBIntersects(currentBox, objBox) && m_velocity.y <= 0) {
                 float objectTop = objBox.center.y + objBox.extents.y;
@@ -171,7 +179,7 @@ void Player::Update(float deltaTime, Input& input, const std::vector<std::unique
         XMStoreFloat3(&camRot, camRotVec);
         m_gunPtr->SetRotation(camRot.x, camRot.y, camRot.z);
 
-        m_gunPtr->Update(deltaTime);
+        m_gunPtr->Update(dt);
     }
 }
 
@@ -190,3 +198,7 @@ void Player::Shoot(Scene* sceneInstance)
         m_gunPtr->Shoot(sceneInstance, shootPos, shootDir);
     }
 }
+
+//  Unused helper methods from fixed timestep attempt (kept for reference)
+void Player::UpdatePhysicsStep(float dt, Input& input, const std::vector<std::unique_ptr<GameObject>>& worldObjects) {}
+void Player::UpdateCameraAndGun(Input& input, float deltaTime) {}

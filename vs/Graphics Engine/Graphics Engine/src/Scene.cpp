@@ -89,12 +89,13 @@ void Scene::Load()
     m_healthObjectMaterial = std::make_shared<Material>(DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f), 0.5f, 16.0f); 
 
     // --- Create HealthObjects ---
-    auto healthObj1 = std::make_unique<HealthObject>(100.0f, DirectX::XMFLOAT3(5.0f, 1.0f, 5.0f));
+    // Positioned away from pillars (pillars are at ±6, ±6)
+    auto healthObj1 = std::make_unique<HealthObject>(100.0f, DirectX::XMFLOAT3(10.0f, 1.0f, 0.0f));
     healthObj1->SetMesh(m_healthObjectMesh.get());
     healthObj1->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial)); 
     m_gameObjects.push_back(std::move(healthObj1));
 
-    auto healthObj2 = std::make_unique<HealthObject>(150.0f, DirectX::XMFLOAT3(-5.0f, 1.0f, 5.0f));
+    auto healthObj2 = std::make_unique<HealthObject>(150.0f, DirectX::XMFLOAT3(-10.0f, 1.0f, 0.0f));
     healthObj2->SetMesh(m_healthObjectMesh.get());
     healthObj2->SetMaterial(std::make_shared<Material>(*m_healthObjectMaterial));
     m_gameObjects.push_back(std::move(healthObj2));
@@ -133,13 +134,23 @@ void Scene::Load()
     artifact->SetPosition(0.0f, 2.0f, 0.0f);
     artifact->SetScale(1.5f, 1.5f, 1.5f);
     artifact->SetRotation(DirectX::XM_PIDIV2, 0.0f, 0.0f);
+    artifact->SetName(L"Artifact"); // CRITICAL: Name needed for animation lookup
     m_gameObjects.push_back(std::move(artifact));
 
     // --- Create Floating Orbs ---
+    float orbRadius = 3.0f; // Orbit radius around torus
     for (int i = 0; i < 4; i++)
     {
         auto orb = std::make_unique<GameObject>(meshSphere.get(), matGlowing);
         orb->SetScale(0.5f, 0.5f, 0.5f);
+        
+        // Initial position in circle around torus
+        float angle = (DirectX::XM_2PI / 4.0f) * i;
+        float x = orbRadius * cosf(angle);
+        float z = orbRadius * sinf(angle);
+        orb->SetPosition(x, 2.0f, z); // Same height as torus
+        orb->SetName(L"Orb"); // Mark as orb for animation
+        
         m_gameObjects.push_back(std::move(orb));
     }
 
@@ -277,6 +288,21 @@ void Scene::Update(float deltaTime, Input& input)
         m_gameObjects[artifactIndex]->SetRotation(DirectX::XM_PIDIV2, time, 0.0f);
     }
 
+    // Animate Orbs (orbit around artifact)
+    float orbRadius = 3.0f;
+    float orbSpeed = 1.0f; // radians per second
+    int orbCount = 0;
+    for (size_t i = 0; i < m_gameObjects.size(); ++i) {
+        if (m_gameObjects[i]->GetName() == L"Orb") {
+            float angle = (DirectX::XM_2PI / 4.0f) * orbCount + (time * orbSpeed);
+            float x = orbRadius * cosf(angle);
+            float z = orbRadius * sinf(angle);
+            float y = 2.0f + 0.3f * sinf(time * 2.0f + orbCount); // Gentle up/down bob
+            m_gameObjects[i]->SetPosition(x, y, z);
+            orbCount++;
+        }
+    }
+
     m_physics.Update(m_gameObjects, deltaTime);
 }
 
@@ -289,9 +315,10 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer)
 
     uiRenderer->EnableUIState();
 
-    float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
-    uiRenderer->DrawString(m_font, "WASD to Move, Space to Jump", 10.0f, 40.0f, 20.0f, color);
-    uiRenderer->DrawString(m_font, "Left Click to Shoot", 10.0f, 70.0f, 20.0f, color);
+    // UI text disabled for cleaner view
+    // float color[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
+    // uiRenderer->DrawString(m_font, "WASD to Move, Space to Jump", 10.0f, 40.0f, 20.0f, color);
+    // uiRenderer->DrawString(m_font, "Left Click to Shoot", 10.0f, 70.0f, 20.0f, color);
 
     if (m_crosshair)
     {
