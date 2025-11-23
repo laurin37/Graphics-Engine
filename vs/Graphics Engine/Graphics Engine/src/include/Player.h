@@ -2,9 +2,10 @@
 #include "GameObject.h"
 #include "Input.h"     
 #include "Camera.h"    
-#include "Gun.h"       
+#include "Gun.h"
+#include "PhysicsBody.h"
 
-// Forward declaration for Scene to avoid circular dependency
+// Forward declaration for Scene
 class Scene;
 
 class Player : public GameObject
@@ -19,14 +20,16 @@ public:
 
 private:
     Camera* m_camera;
-    DirectX::XMFLOAT3 m_velocity; 
-    bool m_onGround;              
     Gun* m_gunPtr = nullptr;
+    
+    // Physics component (owned by Player)
+    PhysicsBody m_physicsBody;
+    
+    // Player-specific constants
     const float MOVE_SPEED = 5.0f;
     const float JUMP_FORCE = 5.0f;
-    const float GRAVITY = -15.0f;
     
-    // Helper methods for fixed timestep
-    void UpdatePhysicsStep(float dt, Input& input, const std::vector<std::unique_ptr<GameObject>>& worldObjects);
-    void UpdateCameraAndGun(Input& input, float deltaTime);
+    // Helper methods
+    void HandleInput(Input& input, float deltaTime);
+    void UpdateCameraAndGun(float deltaTime);
 };
