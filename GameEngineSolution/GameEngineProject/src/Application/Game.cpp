@@ -92,6 +92,16 @@ void Game::Update(float deltaTime)
     }
     bKeyWasPressed = bKeyPressed;
 
+    // Toggle debug collision with H key
+    static bool hKeyWasPressed = false;
+    bool hKeyPressed = m_input.IsKeyDown('H');
+    if (hKeyPressed && !hKeyWasPressed)
+    {
+        m_showDebugCollision = !m_showDebugCollision;
+        LOG_INFO(m_showDebugCollision ? "Debug Collision: ON" : "Debug Collision: OFF");
+    }
+    hKeyWasPressed = hKeyPressed;
+
     if (m_scene)
     {
         m_scene->Update(deltaTime, m_input);
@@ -102,7 +112,7 @@ void Game::Render()
 {
     if (m_scene)
     {
-        m_scene->Render(m_renderer.get(), m_uiRenderer.get());
+        m_scene->Render(m_renderer.get(), m_uiRenderer.get(), m_showDebugCollision);
     }
 
     m_graphics.Present();

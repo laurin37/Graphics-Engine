@@ -25,7 +25,7 @@ public:
 
     void Load();
     void Update(float deltaTime, Input& input);
-    void Render(Renderer* renderer, UIRenderer* uiRenderer);
+    void Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision = false);
 
     void SpawnBullet(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& direction, float speed, float damage);
 

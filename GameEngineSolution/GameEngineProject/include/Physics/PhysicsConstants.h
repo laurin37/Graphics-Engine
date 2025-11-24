@@ -19,7 +19,7 @@ namespace PhysicsConstants
     
     // ===== Collision Detection =====
     constexpr float COLLISION_SKIN_WIDTH = 0.005f;      // Collision margin to prevent tunneling (m)
-    constexpr float STANDING_TOLERANCE = 0.1f;          // Y-distance to consider "standing on" surface (m)
+    constexpr float STANDING_TOLERANCE = 0.05f;         // Y-distance to consider "standing on" surface (m) - reduced for tighter collision
     constexpr float GROUND_PROBE_DISTANCE = 0.015f;     // How far down to check for ground (skin * 3)
     
     // ===== Safety Limits =====

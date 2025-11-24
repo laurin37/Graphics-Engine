@@ -2,6 +2,7 @@
 #include "../../include/Utils/EnginePCH.h"
 #include "../../include/Utils/Transform.h"
 #include "../../include/Physics/Collider.h"
+#include "../../include/Physics/PhysicsBody.h"
 
 using namespace DirectX;
 
@@ -20,7 +21,9 @@ void GameObject::SetMesh(Mesh* mesh)
 
 void GameObject::SetMaterial(std::shared_ptr<Material> material)
 {
-    m_material = material;
+   m_material = material;
+
+
     //LOG_DEBUG(std::format("GameObject::SetMaterial - Material address: {:p}", static_cast<void*>(material.get())));
 }
 
@@ -72,5 +75,12 @@ void GameObject::GenerateCollider(ColliderType type)
         
         // Store in legacy bounding box for now
         m_boundingBox = tempCollider.GetLocalAABB();
+    }
+}
+
+void GameObject::SetKinematic(bool kinematic)
+{
+    if (m_physics) {
+        m_physics->isKinematic = kinematic;
     }
 }

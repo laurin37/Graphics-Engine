@@ -8,11 +8,13 @@ using namespace DirectX;
 Player::Player(Mesh* mesh, std::shared_ptr<Material> material, Camera* camera)
     : GameObject(mesh, material), m_camera(camera)
 {
-    // Setup bounding box
+    // Setup bounding box - Height: 1.0 unit total (reasonable for FPS character)
+    // Camera at +0.7 represents eyes/head, so box should extend just slightly above that
     AABB playerBox;
-    playerBox.center = { 0.0f, 0.9f, 0.0f };
-    playerBox.extents = { 0.4f, 0.9f, 0.4f };
+    playerBox.center = { 0.0f, 0.5f, 0.0f };   // Center at 0.5 (middle of 1.0 unit height)
+    playerBox.extents = { 0.4f, 0.5f, 0.4f };  // Half-height: 0.5 (total height: 1.0)
     SetBoundingBox(playerBox);
+    // Result: Bottom at 0.0, Top at 1.0, Camera at 0.7 (head level)
     
     // Configure physics
     m_physicsBody.useGravity = true;

@@ -40,4 +40,7 @@ private:
 
     // Loop / Timing
     std::chrono::steady_clock::time_point m_lastTime;
+    
+    // Debug flags
+    bool m_showDebugCollision = false;
 };

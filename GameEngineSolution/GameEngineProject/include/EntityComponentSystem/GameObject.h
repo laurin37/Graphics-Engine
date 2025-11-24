@@ -43,6 +43,9 @@ public:
     PhysicsBody* GetPhysics() const { return m_physics; }
     void SetPhysics(PhysicsBody* physics) { m_physics = physics; }
     
+    // Mark as kinematic (manually controlled, skips PhysicsSystem updates)
+    void SetKinematic(bool kinematic);
+    
     // Optional Collider Component
     Collider* GetCollider() const { return m_collider; }
     void SetCollider(Collider* collider) { m_collider = collider; }

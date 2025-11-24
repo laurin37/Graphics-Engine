@@ -377,15 +377,22 @@ void Scene::Update(float deltaTime, Input& input)
         }
     }
 
-    m_physics.Update(m_gameObjects, deltaTime);
+    // Note: PhysicsSystem disabled for now - only Player uses physics and manages it internally
+    // TODO: Re-enable when other GameObjects need physics (bullets with gravity, falling objects, etc.)
+    // m_physics.Update(m_gameObjects, deltaTime);
 }
 
-void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer)
+void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision)
 {
     if (!renderer || !uiRenderer) return;
 
     renderer->RenderFrame(*m_camera, m_gameObjects, m_dirLight, m_pointLights);
-    renderer->RenderDebug(*m_camera, m_gameObjects);
+    
+    // Conditionally render debug collision boxes
+    if (showDebugCollision)
+    {
+        renderer->RenderDebug(*m_camera, m_gameObjects);
+    }
 
     uiRenderer->EnableUIState();
 
@@ -403,6 +410,11 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer)
     std::string bloomStatus = renderer->GetPostProcess()->IsBloomEnabled() ? "[B] Bloom: ON" : "[B] Bloom: OFF";
     float yellow[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
     uiRenderer->DrawString(m_font, bloomStatus, 10.0f, 50.0f, 24.0f, yellow);
+    
+    // Draw Debug Collision status
+    std::string debugStatus = showDebugCollision ? "[H] Debug: ON" : "[H] Debug: OFF";
+    float cyan[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
+    uiRenderer->DrawString(m_font, debugStatus, 10.0f, 80.0f, 24.0f, cyan);
 
     uiRenderer->DisableUIState();
 }
