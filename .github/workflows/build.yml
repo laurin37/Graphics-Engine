@@ -20,7 +20,7 @@ jobs:
     # -S "..." tells CMake where the source code (and CMakeLists.txt) is.
     # We point it to your nested folder: "vs/Graphics Engine/Graphics Engine"
     - name: Configure CMake
-      run: cmake -S "vs/Graphics Engine/Graphics Engine" -B build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S "Graphics Engine/Graphics Engine" -B build -DCMAKE_BUILD_TYPE=Release
 
     # 3. Build
     # This compiles the code using the configuration we just made in the 'build' folder
