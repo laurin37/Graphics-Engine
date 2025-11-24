@@ -1,3 +1,4 @@
+
 #pragma once
 
 #include <vector>
@@ -14,6 +15,7 @@
 #include "../ECS/ComponentManager.h"
 #include "../ECS/Systems/ECSPhysicsSystem.h"
 #include "../ECS/Systems/ECSRenderSystem.h"
+#include "../ECS/Systems/ECSMovementSystem.h"
 #include "../ECS/ECSExample.h"
 
 class AssetManager;
@@ -100,10 +102,11 @@ private:
     int m_frameCount = 0;
     float m_timeAccum = 0.0f;
     
-    // NEW: ECS system
+    // ECS
     ECS::ComponentManager m_ecsComponentManager;
     ECS::PhysicsSystem m_ecsPhysicsSystem;
     ECS::RenderSystem m_ecsRenderSystem;
+    ECS::MovementSystem m_ecsMovementSystem;
     
-    bool m_useECS = false;  // Toggle flag
+    bool m_useECS = false;  // Toggle between GameObject and ECS systems
 };

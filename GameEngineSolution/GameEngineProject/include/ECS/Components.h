@@ -56,4 +56,36 @@ struct ColliderComponent {
     bool enabled = true;
 };
 
+// ========================================
+// Light Component
+// Point light properties
+// ========================================
+struct LightComponent {
+    DirectX::XMFLOAT4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float intensity = 1.0f;
+    float range = 10.0f;
+    bool enabled = true;
+};
+
+// ========================================
+// Rotate Component
+// Simple continuous rotation
+// ========================================
+struct RotateComponent {
+    DirectX::XMFLOAT3 axis = { 0.0f, 1.0f, 0.0f };
+    float speed = 1.0f; // Radians per second
+};
+
+// ========================================
+// Orbit Component
+// Orbit around a center point
+// ========================================
+struct OrbitComponent {
+    DirectX::XMFLOAT3 center = { 0.0f, 0.0f, 0.0f };
+    float radius = 5.0f;
+    float speed = 1.0f;
+    float angle = 0.0f; // Current angle
+    DirectX::XMFLOAT3 axis = { 0.0f, 1.0f, 0.0f }; // Axis to orbit around
+};
+
 } // namespace ECS

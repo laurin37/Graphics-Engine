@@ -31,39 +31,151 @@ void Scene::Load()
     SpawnSceneObjects();
     InitializeUI();
 
-    // Create ECS test entities (will not be visible but physics will run)
-    // Entity 1: Falling cube at origin
-    ECS::Entity cube1 = ECSExample::CreateFallingCube(
-        m_ecsComponentManager,
-        m_meshCube.get(),
-        m_matFloor
-    );
-
-    // Entity 2: Floating cube (no gravity)
-    ECS::Entity cube2 = m_ecsComponentManager.CreateEntity();
-    ECS::TransformComponent transform2;
-    transform2.position = { 5.0f, 3.0f, 0.0f };
-    m_ecsComponentManager.AddTransform(cube2, transform2);
+    // --- ECS Scene Generation ---
     
-    ECS::PhysicsComponent physics2;
-    physics2.useGravity = false;  // This one won't fall
-    m_ecsComponentManager.AddPhysics(cube2, physics2);
+    // 1. Floor
+    ECS::Entity floor = m_ecsComponentManager.CreateEntity();
+    ECS::TransformComponent floorTrans;
+    floorTrans.position = { 0.0f, -1.0f, 0.0f };
+    floorTrans.scale = { 100.0f, 0.1f, 100.0f };
+    m_ecsComponentManager.AddTransform(floor, floorTrans);
+    ECS::RenderComponent floorRender;
+    floorRender.mesh = m_meshCube.get();
+    floorRender.material = m_matFloor;
+    m_ecsComponentManager.AddRender(floor, floorRender);
+    ECS::PhysicsComponent floorPhys;
+    floorPhys.useGravity = false; // Static
+    m_ecsComponentManager.AddPhysics(floor, floorPhys);
+    ECS::ColliderComponent floorCol;
+    floorCol.localAABB.extents = { 50.0f, 0.05f, 50.0f };
+    m_ecsComponentManager.AddCollider(floor, floorCol);
 
-    ECS::RenderComponent render2;
-    render2.mesh = m_meshCube.get();
-    render2.material = m_matOrbBlue; // Make it blue to distinguish
-    m_ecsComponentManager.AddRender(cube2, render2);
+    // 2. Room
+    ECS::Entity room = m_ecsComponentManager.CreateEntity();
+    ECS::TransformComponent roomTrans;
+    roomTrans.position = { 30.0f, -1.0f, 30.0f };
+    m_ecsComponentManager.AddTransform(room, roomTrans);
+    ECS::RenderComponent roomRender;
+    roomRender.mesh = m_meshRoom.get();
+    roomRender.material = m_matGold;
+    m_ecsComponentManager.AddRender(room, roomRender);
+    ECS::PhysicsComponent roomPhys;
+    roomPhys.useGravity = false;
+    m_ecsComponentManager.AddPhysics(room, roomPhys);
+    ECS::ColliderComponent roomCol; // Simplified collider
+    roomCol.localAABB.extents = { 10.0f, 5.0f, 10.0f }; 
+    m_ecsComponentManager.AddCollider(room, roomCol);
 
-    // Entity 3: Another falling cube
-    ECS::Entity cube3 = ECSExample::CreateFallingCube(
-        m_ecsComponentManager,
-        m_meshCube.get(),
-        m_matFloor
-    );
-    // Offset position
-    ECS::TransformComponent* transform3 = m_ecsComponentManager.GetTransform(cube3);
-    if (transform3) {
-        transform3->position = { -3.0f, 8.0f, 2.0f };
+    // 3. Pillars & Roofs
+    float pillarDist = 6.0f;
+    float pillarPositions[4][2] = { {pillarDist, pillarDist}, {pillarDist, -pillarDist}, {-pillarDist, pillarDist}, {-pillarDist, -pillarDist} };
+    for (int i = 0; i < 4; i++) {
+        // Pillar
+        ECS::Entity pillar = m_ecsComponentManager.CreateEntity();
+        ECS::TransformComponent pilTrans;
+        pilTrans.position = { pillarPositions[i][0], 1.0f, pillarPositions[i][1] };
+        pilTrans.scale = { 1.0f, 2.0f, 1.0f };
+        m_ecsComponentManager.AddTransform(pillar, pilTrans);
+        ECS::RenderComponent pilRender;
+        pilRender.mesh = m_meshCylinder.get();
+        pilRender.material = m_matPillar;
+        m_ecsComponentManager.AddRender(pillar, pilRender);
+        ECS::PhysicsComponent pilPhys;
+        pilPhys.useGravity = false;
+        m_ecsComponentManager.AddPhysics(pillar, pilPhys);
+        ECS::ColliderComponent pilCol;
+        pilCol.localAABB.extents = { 0.5f, 1.0f, 0.5f };
+        m_ecsComponentManager.AddCollider(pillar, pilCol);
+
+        // Roof
+        ECS::Entity roof = m_ecsComponentManager.CreateEntity();
+        ECS::TransformComponent roofTrans;
+        roofTrans.position = { pillarPositions[i][0], 3.5f, pillarPositions[i][1] };
+        roofTrans.scale = { 1.5f, 1.0f, 1.5f };
+        m_ecsComponentManager.AddTransform(roof, roofTrans);
+        ECS::RenderComponent roofRender;
+        roofRender.mesh = m_meshCone.get();
+        roofRender.material = m_matRoof;
+        m_ecsComponentManager.AddRender(roof, roofRender);
+        ECS::PhysicsComponent roofPhys;
+        roofPhys.useGravity = false;
+        m_ecsComponentManager.AddPhysics(roof, roofPhys);
+    }
+
+    // 4. Pedestal
+    ECS::Entity pedestal = m_ecsComponentManager.CreateEntity();
+    ECS::TransformComponent pedTrans;
+    pedTrans.position = { 0.0f, 0.0f, 0.0f };
+    pedTrans.scale = { 2.0f, 1.0f, 2.0f };
+    m_ecsComponentManager.AddTransform(pedestal, pedTrans);
+    ECS::RenderComponent pedRender;
+    pedRender.mesh = m_meshCube.get();
+    pedRender.material = m_matPillar;
+    m_ecsComponentManager.AddRender(pedestal, pedRender);
+    ECS::PhysicsComponent pedPhys;
+    pedPhys.useGravity = false;
+    m_ecsComponentManager.AddPhysics(pedestal, pedPhys);
+    ECS::ColliderComponent pedCol;
+    pedCol.localAABB.extents = { 1.0f, 0.5f, 1.0f };
+    m_ecsComponentManager.AddCollider(pedestal, pedCol);
+
+    // 5. Artifact (Rotating)
+    ECS::Entity artifact = m_ecsComponentManager.CreateEntity();
+    ECS::TransformComponent artTrans;
+    artTrans.position = { 0.0f, 2.0f, 0.0f };
+    artTrans.scale = { 1.5f, 1.5f, 1.5f };
+    artTrans.rotation = { DirectX::XM_PIDIV2, 0.0f, 0.0f }; // Initial rotation
+    m_ecsComponentManager.AddTransform(artifact, artTrans);
+    ECS::RenderComponent artRender;
+    artRender.mesh = m_meshTorus.get();
+    artRender.material = m_matGold;
+    m_ecsComponentManager.AddRender(artifact, artRender);
+    ECS::PhysicsComponent artPhys;
+    artPhys.useGravity = false;
+    m_ecsComponentManager.AddPhysics(artifact, artPhys);
+    ECS::RotateComponent artRot;
+    artRot.axis = { 0.0f, 1.0f, 0.0f }; // Rotate around Y
+    artRot.speed = 1.0f;
+    m_ecsComponentManager.AddRotate(artifact, artRot);
+
+    // 6. Orbs (Orbiting + Lights)
+    float orbRadius = 3.0f;
+    std::shared_ptr<Material> orbMaterials[4] = { m_matOrbRed, m_matOrbGreen, m_matOrbBlue, m_matOrbOrange };
+    DirectX::XMFLOAT4 orbColors[4] = { 
+        {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, 
+        {0.0f, 0.0f, 1.0f, 1.0f}, {1.0f, 0.5f, 0.0f, 1.0f} 
+    };
+
+    for (int i = 0; i < 4; i++) {
+        ECS::Entity orb = m_ecsComponentManager.CreateEntity();
+        ECS::TransformComponent orbTrans;
+        orbTrans.scale = { 0.5f, 0.5f, 0.5f };
+        // Position set by Orbit system, but init here
+        float angle = (DirectX::XM_2PI / 4.0f) * i;
+        orbTrans.position = { orbRadius * cosf(angle), 2.0f, orbRadius * sinf(angle) };
+        m_ecsComponentManager.AddTransform(orb, orbTrans);
+        
+        ECS::RenderComponent orbRender;
+        orbRender.mesh = m_meshSphere.get();
+        orbRender.material = orbMaterials[i];
+        m_ecsComponentManager.AddRender(orb, orbRender);
+        
+        ECS::PhysicsComponent orbPhys;
+        orbPhys.useGravity = false;
+        m_ecsComponentManager.AddPhysics(orb, orbPhys);
+        
+        ECS::OrbitComponent orbOrbit;
+        orbOrbit.center = { 0.0f, 2.0f, 0.0f };
+        orbOrbit.radius = orbRadius;
+        orbOrbit.speed = 0.5f;
+        orbOrbit.angle = angle;
+        m_ecsComponentManager.AddOrbit(orb, orbOrbit);
+        
+        ECS::LightComponent orbLight;
+        orbLight.color = orbColors[i];
+        orbLight.intensity = 1.0f;
+        orbLight.range = 15.0f;
+        m_ecsComponentManager.AddLight(orb, orbLight);
     }
 }
 
@@ -296,6 +408,7 @@ void Scene::Update(float deltaTime, Input& input)
     if (m_useECS) {
         // ECS Mode: Update physics system + free camera
         m_ecsPhysicsSystem.Update(m_ecsComponentManager, deltaTime);
+        m_ecsMovementSystem.Update(m_ecsComponentManager, deltaTime);
         
         // Free camera controls (WASD + Mouse)
         const float CAMERA_SPEED = 5.0f;
@@ -507,7 +620,23 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
         }
         
         // Render the temporary objects
-        renderer->RenderFrame(*m_camera, ecsRenderObjects, m_dirLight, m_pointLights);
+        
+        // Gather ECS Lights
+        std::vector<PointLight> ecsLights;
+        const auto& lightEntities = m_ecsComponentManager.GetEntitiesWithLight();
+        for (ECS::Entity entity : lightEntities) {
+            auto* light = m_ecsComponentManager.GetLight(entity);
+            auto* transform = m_ecsComponentManager.GetTransform(entity);
+            
+            if (light && transform && light->enabled) {
+                PointLight pl;
+                pl.position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, light->range);
+                pl.color = light->color;
+                ecsLights.push_back(pl);
+            }
+        }
+        
+        renderer->RenderFrame(*m_camera, ecsRenderObjects, m_dirLight, ecsLights);
         
     } else {
         // GameObject Mode: Render normal scene
