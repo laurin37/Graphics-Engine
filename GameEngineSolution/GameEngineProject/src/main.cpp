@@ -1,4 +1,4 @@
-#include "include/Game.h"
+#include "../include/Application/Game.h"
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow)
 {
