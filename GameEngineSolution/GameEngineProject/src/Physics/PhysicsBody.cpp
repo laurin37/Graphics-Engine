@@ -138,12 +138,15 @@ void PhysicsBody::ResolveCollisions(float dt, GameObject* owner,
         AABB ownerBox = owner->GetWorldBoundingBox();
         AABB objBox = obj->GetWorldBoundingBox();
         
-        // Check for horizontal overlap
+        // Check for horizontal overlap (X and Z axes)
         bool xOverlap = fabsf(ownerBox.center.x - objBox.center.x) <= (ownerBox.extents.x + objBox.extents.x);
         bool zOverlap = fabsf(ownerBox.center.z - objBox.center.z) <= (ownerBox.extents.z + objBox.extents.z);
         
-        if (xOverlap && zOverlap) {
-            // There's horizontal overlap - but is it a wall or are we standing on top?
+        // CRITICAL: Also check Y-axis overlap - only collide if we're at the same height!
+        bool yOverlap = fabsf(ownerBox.center.y - objBox.center.y) <= (ownerBox.extents.y + objBox.extents.y);
+        
+        if (xOverlap && zOverlap && yOverlap) {
+            // There's 3D overlap - but is it a wall or are we standing on top?
             float ownerBottom = ownerBox.center.y - ownerBox.extents.y;
             float objTop = objBox.center.y + objBox.extents.y;
             

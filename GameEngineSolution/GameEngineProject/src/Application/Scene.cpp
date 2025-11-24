@@ -153,6 +153,13 @@ void Scene::SpawnSceneObjects()
     floor->GenerateCollider();
     m_gameObjects.push_back(std::move(floor));
 
+    // --- Create cube ---
+    auto cube = std::make_unique<GameObject>(m_meshCube.get(), m_matFloor);
+    cube->SetPosition(-30.0f, 6.0f, -30.0f);
+    cube->SetScale(1.0f, 1.0f, 1.0f);
+    cube->GenerateCollider();
+    m_gameObjects.push_back(std::move(cube));
+
     // --- Create Room ---
     auto room = std::make_unique<GameObject>(m_meshRoom.get(), m_matGold);
     room->SetPosition(30.0f, -1.0f, 30.0f);
