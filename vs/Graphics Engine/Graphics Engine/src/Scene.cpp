@@ -59,6 +59,7 @@ void Scene::LoadAssets()
     m_meshCone = m_assetManager->LoadMesh("Assets/Models/basic/cone.obj");
     m_meshSphere = m_assetManager->LoadMesh("Assets/Models/basic/sphere.obj");
     m_meshTorus = m_assetManager->LoadMesh("Assets/Models/basic/torus.obj");
+    m_meshRoom = m_assetManager->LoadMesh("Assets/Models/room.obj");
 
     // Load textures
     auto texWood = m_assetManager->LoadTexture(L"Assets/Textures/pine_bark_diff_4k.jpg");
@@ -85,10 +86,6 @@ void Scene::LoadAssets()
             LOG_INFO("Loaded default debug font");
         }
     }
-    
-    // Store materials will reference these textures
-    // (We'll create materials in CreateMaterials() using these textures via a temporary approach)
-    // For now, we'll recreate material initialization there.
 }
 
 void Scene::CreateMaterials()
@@ -154,6 +151,13 @@ void Scene::SpawnSceneObjects()
     floor->SetScale(100.0f, 0.1f, 100.0f);
     floor->GenerateCollider();
     m_gameObjects.push_back(std::move(floor));
+
+    // --- Create Room ---
+    auto room = std::make_unique<GameObject>(m_meshRoom.get(), m_matGold);
+    room->SetPosition(30.0f, -1.0f, 30.0f);
+    room->SetScale(1.0f, 1.0f, 1.0f);
+    room->GenerateCollider();
+    m_gameObjects.push_back(std::move(room));
 
     // --- Create Pillars ---
     float pillarDist = 6.0f;

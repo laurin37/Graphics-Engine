@@ -206,6 +206,7 @@
     <None Include="Assets\Models\basic\cube.mtl" />
     <None Include="Assets\Models\basic\cylinder.mtl" />
     <None Include="Assets\Models\monkey.mtl" />
+    <None Include="Assets\Models\room.mtl" />
     <None Include="Assets\Models\windmill.obj">
       <FileType>Document</FileType>
     </None>
@@ -292,6 +293,11 @@
       <FileType>Document</FileType>
     </None>
     <None Include="Assets\Shaders\GaussianBlur.hlsl">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Models\room.obj">
       <FileType>Document</FileType>
     </None>
   </ItemGroup>

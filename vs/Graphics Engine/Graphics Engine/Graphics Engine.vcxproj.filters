@@ -245,6 +245,8 @@
     <None Include="Assets\Models\monkey.obj" />
     <None Include="Assets\Shaders\GaussianBlur.hlsl" />
     <None Include="Assets\Shaders\BrightPass.hlsl" />
+    <None Include="Assets\Models\room.mtl" />
+    <None Include="Assets\Models\room.obj" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Textures\blue_metal_plate_diff_4k.jpg">

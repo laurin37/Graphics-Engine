@@ -52,6 +52,7 @@ private:
     std::shared_ptr<Mesh> m_meshCone;
     std::shared_ptr<Mesh> m_meshSphere;
     std::shared_ptr<Mesh> m_meshTorus;
+    std::shared_ptr<Mesh> m_meshRoom;
 
     // Shared materials created in CreateMaterials()
     std::shared_ptr<Material> m_matFloor;
