@@ -1,13 +1,12 @@
 #include "../../../include/ECS/Systems/PlayerMovementSystem.h"
 #include "../../../include/Input/Input.h"
-#include "../../../include/EntityComponentSystem/Camera.h"
 #include <DirectXMath.h>
 
 using namespace DirectX;
 
 namespace ECS {
 
-void PlayerMovementSystem::Update(ComponentManager& cm, Input& input, Camera& camera, float deltaTime) {
+void PlayerMovementSystem::Update(ComponentManager& cm, Input& input, float deltaTime) {
     // Get all player entities (entities with PlayerController + Transform)
     std::vector<Entity> players = cm.GetEntitiesWithPlayerControllerAndTransform();
     
@@ -19,7 +18,7 @@ void PlayerMovementSystem::Update(ComponentManager& cm, Input& input, Camera& ca
         if (!controller || !transform) continue;
         
         // Handle mouse look and camera
-        HandleMouseLook(player, *transform, *controller, camera, input, deltaTime);
+        HandleMouseLook(player, *transform, *controller, input, deltaTime);
         
         // Handle movement (WASD)
         if (physics) {
@@ -75,7 +74,7 @@ void PlayerMovementSystem::HandleJump(Entity entity, PhysicsComponent& physics,
 }
 
 void PlayerMovementSystem::HandleMouseLook(Entity entity, TransformComponent& transform,
-                                          PlayerControllerComponent& controller, Camera& camera, 
+                                          PlayerControllerComponent& controller, 
                                           Input& input, float deltaTime) {
     // Get mouse delta
     float mouseDeltaX = input.GetMouseDeltaX();
@@ -90,12 +89,7 @@ void PlayerMovementSystem::HandleMouseLook(Entity entity, TransformComponent& tr
     if (transform.rotation.x > maxPitch) transform.rotation.x = maxPitch;
     if (transform.rotation.x < -maxPitch) transform.rotation.x = -maxPitch;
     
-    // Update camera position and rotation
-    XMFLOAT3 cameraPos = transform.position;
-    cameraPos.y += controller.cameraHeight; // Eye level
-    
-    camera.SetPosition(cameraPos.x, cameraPos.y, cameraPos.z);
-    camera.SetRotation(transform.rotation.x, transform.rotation.y, transform.rotation.z);
+    // Note: CameraSystem will handle updating the camera view matrix based on this transform
 }
 
 } // namespace ECS

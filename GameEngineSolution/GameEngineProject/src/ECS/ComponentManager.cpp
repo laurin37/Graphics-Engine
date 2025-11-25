@@ -23,6 +23,7 @@ void ComponentManager::DestroyEntity(Entity entity) {
     RemoveRotate(entity);
     RemoveOrbit(entity);
     RemovePlayerController(entity);
+    RemoveCamera(entity);
     
     // Remove from entity list
     auto it = std::find(m_entities.begin(), m_entities.end(), entity);
@@ -534,4 +535,67 @@ std::vector<Entity> ComponentManager::GetEntitiesWithPlayerControllerAndTransfor
     return entities;
 }
 
-} // namespace ECS
+// ========================================
+// Camera Component
+// ========================================
+
+void ComponentManager::AddCamera(Entity entity, const CameraComponent& component) {
+    if (m_entityToCamera.find(entity) != m_entityToCamera.end()) {
+        size_t index = m_entityToCamera[entity];
+        m_cameras[index] = component;
+        return;
+    }
+    
+    size_t index = m_cameras.size();
+    m_cameras.push_back(component);
+    m_entityToCamera[entity] = index;
+    m_cameraToEntity[index] = entity;
+}
+
+void ComponentManager::RemoveCamera(Entity entity) {
+    auto it = m_entityToCamera.find(entity);
+    if (it == m_entityToCamera.end()) return;
+    
+    size_t index = it->second;
+    size_t lastIndex = m_cameras.size() - 1;
+    
+    if (index != lastIndex) {
+        m_cameras[index] = m_cameras[lastIndex];
+        Entity movedEntity = m_cameraToEntity[lastIndex];
+        m_entityToCamera[movedEntity] = index;
+        m_cameraToEntity[index] = movedEntity;
+    }
+    
+    m_cameras.pop_back();
+    m_entityToCamera.erase(entity);
+    m_cameraToEntity.erase(lastIndex);
+}
+
+CameraComponent* ComponentManager::GetCamera(Entity entity) {
+    auto it = m_entityToCamera.find(entity);
+    if (it == m_entityToCamera.end()) return nullptr;
+    return &m_cameras[it->second];
+}
+
+bool ComponentManager::HasCamera(Entity entity) const {
+    return m_entityToCamera.find(entity) != m_entityToCamera.end();
+}
+
+Entity ComponentManager::GetActiveCamera() {
+    for (const auto& pair : m_cameraToEntity) {
+        if (m_cameras[pair.first].isActive) {
+            return pair.second;
+        }
+    }
+    return Entity(); // Return invalid entity if no active camera
+}
+
+std::vector<Entity> ComponentManager::GetEntitiesWithCamera() const {
+    std::vector<Entity> entities;
+    for (const auto& pair : m_cameraToEntity) {
+        entities.push_back(pair.second);
+    }
+    return entities;
+}
+
+}

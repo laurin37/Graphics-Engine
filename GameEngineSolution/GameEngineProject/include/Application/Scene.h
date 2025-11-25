@@ -17,6 +17,7 @@
 #include "../ECS/Systems/ECSRenderSystem.h"
 #include "../ECS/Systems/ECSMovementSystem.h"
 #include "../ECS/Systems/PlayerMovementSystem.h"
+#include "../ECS/Systems/CameraSystem.h"
 
 // Forward declarations
 class AssetManager;
@@ -55,7 +56,6 @@ private:
     Graphics* m_graphics;
 
     // Core systems
-    std::unique_ptr<Camera> m_camera;
     SimpleFont m_font;
     std::unique_ptr<Crosshair> m_crosshair;
     DebugUIRenderer m_debugUI;
@@ -93,4 +93,5 @@ private:
     ECS::RenderSystem m_ecsRenderSystem;
     ECS::MovementSystem m_ecsMovementSystem;
     ECS::PlayerMovementSystem m_ecsPlayerMovementSystem;
+    ECS::CameraSystem m_ecsCameraSystem;
 };

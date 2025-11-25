@@ -20,6 +20,8 @@ struct TransformComponent {
     DirectX::XMFLOAT3 scale = { 1.0f, 1.0f, 1.0f };
 };
 
+
+
 // ========================================
 // Physics Component
 // Velocity, forces, and physics properties
@@ -98,6 +100,23 @@ struct PlayerControllerComponent {
     float mouseSensitivity = 0.002f;
     float cameraHeight = 0.7f; // Eye level offset from position
     bool canJump = true;
+};
+
+// ========================================
+// Camera Component
+// Camera properties and cached matrices
+// ========================================
+struct CameraComponent {
+    float fov = 70.0f;                      // Field of view (degrees)
+    float aspectRatio = 16.0f / 9.0f;       // Aspect ratio (width/height)
+    float nearPlane = 0.1f;                 // Near clipping plane
+    float farPlane = 1000.0f;               // Far clipping plane
+    bool isActive = false;                  // Only one camera should be active
+    DirectX::XMFLOAT3 positionOffset = { 0.0f, 0.0f, 0.0f }; // Offset from entity transform
+    
+    // Cached matrices (updated by CameraSystem)
+    DirectX::XMFLOAT4X4 viewMatrix;
+    DirectX::XMFLOAT4X4 projectionMatrix;
 };
 
 } // namespace ECS

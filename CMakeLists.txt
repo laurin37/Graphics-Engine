@@ -43,6 +43,7 @@ set(SOURCE_FILES
     "GameEngineSolution/GameEngineProject/src/ECS/Systems/PlayerMovementSystem.cpp"
     "GameEngineSolution/GameEngineProject/src/ResourceManagement/SceneLoader.cpp"
     "GameEngineSolution/GameEngineProject/src/ResourceManagement/JsonParser.cpp"
+    "GameEngineSolution/GameEngineProject/src/ECS/Systems/CameraSystem.cpp"
 )
 
 # 5. Create the Executable (The .exe)

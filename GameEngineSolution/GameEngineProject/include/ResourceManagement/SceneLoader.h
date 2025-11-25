@@ -40,6 +40,7 @@ private:
     static ECS::RotateComponent ParseRotate(const JsonValue& j);
     static ECS::OrbitComponent ParseOrbit(const JsonValue& j);
     static ECS::PlayerControllerComponent ParsePlayerController(const JsonValue& j);
+    static ECS::CameraComponent ParseCamera(const JsonValue& j);
 
     // Helper: Extract vec3/vec4 from JSON array [x, y, z]
     static DirectX::XMFLOAT3 ParseVec3(const JsonValue& arr, const DirectX::XMFLOAT3& defaultValue = {0.0f, 0.0f, 0.0f});

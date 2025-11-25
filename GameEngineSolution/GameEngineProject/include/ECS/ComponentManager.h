@@ -89,6 +89,15 @@ public:
     bool HasPlayerController(Entity entity) const;
     
     // ========================================
+    // Component Management - Camera
+    // ========================================
+    void AddCamera(Entity entity, const CameraComponent& component);
+    void RemoveCamera(Entity entity);
+    CameraComponent* GetCamera(Entity entity);
+    bool HasCamera(Entity entity) const;
+    Entity GetActiveCamera(); // Helper to find the active camera
+    
+    // ========================================
     // Queries (for systems to iterate entities)
     // ========================================
     std::vector<Entity> GetEntitiesWithTransform() const;
@@ -99,6 +108,7 @@ public:
     std::vector<Entity> GetEntitiesWithRotate() const;
     std::vector<Entity> GetEntitiesWithOrbit() const;
     std::vector<Entity> GetEntitiesWithPlayerController() const;
+    std::vector<Entity> GetEntitiesWithCamera() const;
     
     // Get entities with multiple components
     std::vector<Entity> GetEntitiesWithPlayerControllerAndTransform() const;
@@ -180,6 +190,11 @@ private:
     std::vector<PlayerControllerComponent> m_playerControllers;
     std::unordered_map<Entity, size_t> m_entityToPlayerController;
     std::unordered_map<size_t, Entity> m_playerControllerToEntity;
+    
+    // Camera components
+    std::vector<CameraComponent> m_cameras;
+    std::unordered_map<Entity, size_t> m_entityToCamera;
+    std::unordered_map<size_t, Entity> m_cameraToEntity;
 };
 
 } // namespace ECS

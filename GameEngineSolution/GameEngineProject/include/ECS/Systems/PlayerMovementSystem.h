@@ -4,7 +4,6 @@
 
 // Forward declarations
 class Input;
-class Camera;
 
 namespace ECS {
 
@@ -14,14 +13,14 @@ namespace ECS {
 // ========================================
 class PlayerMovementSystem {
 public:
-    void Update(ComponentManager& cm, Input& input, Camera& camera, float deltaTime);
+    void Update(ComponentManager& cm, Input& input, float deltaTime);
 
 private:
     void HandleMovement(Entity entity, TransformComponent& transform, PhysicsComponent& physics, 
                        PlayerControllerComponent& controller, Input& input, float deltaTime);
     void HandleJump(Entity entity, PhysicsComponent& physics, PlayerControllerComponent& controller, Input& input);
     void HandleMouseLook(Entity entity, TransformComponent& transform, PlayerControllerComponent& controller, 
-                        Camera& camera, Input& input, float deltaTime);
+                        Input& input, float deltaTime);
 };
 
 } // namespace ECS

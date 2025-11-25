@@ -138,12 +138,48 @@ void SceneLoader::LoadScene(
             ECS::PlayerControllerComponent controller = ParsePlayerController(components.GetField("playerController"));
             componentManager.AddPlayerController(entity, controller);
         }
+
+        // Parse Camera
+        if (components.HasField("camera")) {
+            ECS::CameraComponent camera = ParseCamera(components.GetField("camera"));
+            componentManager.AddCamera(entity, camera);
+        }
     }
 }
 
 // ========================================
 // Component Parsing Methods
 // ========================================
+
+ECS::CameraComponent SceneLoader::ParseCamera(const JsonValue& j) {
+    ECS::CameraComponent camera;
+    
+    if (j.HasField("fov")) {
+        camera.fov = static_cast<float>(j.GetField("fov").AsNumber());
+    }
+    
+    if (j.HasField("aspectRatio")) {
+        camera.aspectRatio = static_cast<float>(j.GetField("aspectRatio").AsNumber());
+    }
+    
+    if (j.HasField("nearPlane")) {
+        camera.nearPlane = static_cast<float>(j.GetField("nearPlane").AsNumber());
+    }
+    
+    if (j.HasField("farPlane")) {
+        camera.farPlane = static_cast<float>(j.GetField("farPlane").AsNumber());
+    }
+    
+    if (j.HasField("isActive")) {
+        camera.isActive = j.GetField("isActive").AsBool();
+    }
+    
+    if (j.HasField("offset")) {
+        camera.positionOffset = ParseVec3(j.GetField("offset"), {0.0f, 0.0f, 0.0f});
+    }
+    
+    return camera;
+}
 
 ECS::TransformComponent SceneLoader::ParseTransform(const JsonValue& j) {
     ECS::TransformComponent transform;

@@ -49,7 +49,7 @@
                 },
                 "physics": {
                     "useGravity": true,
-                    "mass": 1.0,
+                    "mass": 80.0,
                     "checkCollisions": true,
                     "gravityAcceleration": -15.0,
                     "maxFallSpeed": -15.0
@@ -71,6 +71,18 @@
                     "jumpForce": 7.0,
                     "mouseSensitivity": 0.002,
                     "cameraHeight": 0.7
+                },
+                "camera": {
+                    "fov": 70.0,
+                    "aspectRatio": 1.777,
+                    "nearPlane": 0.1,
+                    "farPlane": 1000.0,
+                    "isActive": true,
+                    "offset": [
+                        0.0,
+                        0.7,
+                        0.0
+                    ]
                 }
             }
         },

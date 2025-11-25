@@ -22,11 +22,6 @@ Scene::~Scene() = default;
 
 void Scene::Load()
 {
-    // Setup camera
-    m_camera = std::make_unique<Camera>();
-    m_camera->SetPosition(0.0f, 5.0f, -15.0f);
-    m_camera->AdjustRotation(0.3f, 0.0f, 0.0f);
-    
     // Load all meshes
     m_meshCube = m_assetManager->LoadMesh("Assets/Models/basic/cube.obj");
     m_meshCylinder = m_assetManager->LoadMesh("Assets/Models/basic/cylinder.obj");
@@ -120,9 +115,10 @@ void Scene::Update(float deltaTime, Input& input)
     }
 
     // Update ECS systems
+    m_ecsPlayerMovementSystem.Update(m_ecsComponentManager, input, deltaTime);
     m_ecsPhysicsSystem.Update(m_ecsComponentManager, deltaTime);
     m_ecsMovementSystem.Update(m_ecsComponentManager, deltaTime);
-    m_ecsPlayerMovementSystem.Update(m_ecsComponentManager, input, *m_camera, deltaTime);
+    m_ecsCameraSystem.Update(m_ecsComponentManager);
 }
 
 void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision)
@@ -163,12 +159,25 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
         }
     }
     
+    // Get ECS camera and create temporary Camera adapter for renderer
+    DirectX::XMMATRIX ecsView, ecsProj;
+    Camera tempCamera;  // Temporary adapter
+    
+    if (m_ecsCameraSystem.GetActiveCamera(m_ecsComponentManager, ecsView, ecsProj)) {
+        // Find player entity with camera to get position/rotation
+        ECS::Entity cameraEntity = m_ecsComponentManager.GetActiveCamera();
+        if (auto* transform = m_ecsComponentManager.GetTransform(cameraEntity)) {
+            tempCamera.SetPosition(transform->position.x, transform->position.y, transform->position.z);
+            tempCamera.SetRotation(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+        }
+    }
+    
     // Render scene
-    renderer->RenderFrame(*m_camera, ecsRenderObjects, m_dirLight, ecsLights);
+    renderer->RenderFrame(tempCamera, ecsRenderObjects, m_dirLight, ecsLights);
     
     // Render debug collision boxes
     if (showDebugCollision) {
-        m_ecsRenderSystem.RenderDebug(m_ecsComponentManager, renderer, *m_camera);
+        m_ecsRenderSystem.RenderDebug(m_ecsComponentManager, renderer, tempCamera);
     }
     
     // Render UI
