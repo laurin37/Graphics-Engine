@@ -88,4 +88,16 @@ struct OrbitComponent {
     DirectX::XMFLOAT3 axis = { 0.0f, 1.0f, 0.0f }; // Axis to orbit around
 };
 
+// ========================================
+// PlayerController Component
+// First-person player movement and controls
+// ========================================
+struct PlayerControllerComponent {
+    float moveSpeed = 5.0f;
+    float jumpForce = 7.0f;
+    float mouseSensitivity = 0.002f;
+    float cameraHeight = 0.7f; // Eye level offset from position
+    bool canJump = true;
+};
+
 } // namespace ECS

@@ -22,6 +22,7 @@ void ComponentManager::DestroyEntity(Entity entity) {
     RemoveLight(entity);
     RemoveRotate(entity);
     RemoveOrbit(entity);
+    RemovePlayerController(entity);
     
     // Remove from entity list
     auto it = std::find(m_entities.begin(), m_entities.end(), entity);
@@ -454,6 +455,78 @@ std::vector<Entity> ComponentManager::GetEntitiesWithOrbitAndTransform() const {
     } else {
         for (const auto& pair : m_transformToEntity) {
             if (HasOrbit(pair.second)) {
+                entities.push_back(pair.second);
+            }
+        }
+    }
+    return entities;
+}
+
+// ========================================
+// PlayerController Component
+// ========================================
+
+void ComponentManager::AddPlayerController(Entity entity, const PlayerControllerComponent& component) {
+    if (m_entityToPlayerController.find(entity) != m_entityToPlayerController.end()) {
+        size_t index = m_entityToPlayerController[entity];
+        m_playerControllers[index] = component;
+        return;
+    }
+    
+    size_t index = m_playerControllers.size();
+    m_playerControllers.push_back(component);
+    m_entityToPlayerController[entity] = index;
+    m_playerControllerToEntity[index] = entity;
+}
+
+void ComponentManager::RemovePlayerController(Entity entity) {
+    auto it = m_entityToPlayerController.find(entity);
+    if (it == m_entityToPlayerController.end()) return;
+    
+    size_t index = it->second;
+    size_t lastIndex = m_playerControllers.size() - 1;
+    
+    if (index != lastIndex) {
+        m_playerControllers[index] = m_playerControllers[lastIndex];
+        Entity movedEntity = m_playerControllerToEntity[lastIndex];
+        m_entityToPlayerController[movedEntity] = index;
+        m_playerControllerToEntity[index] = movedEntity;
+    }
+    
+    m_playerControllers.pop_back();
+    m_entityToPlayerController.erase(entity);
+    m_playerControllerToEntity.erase(lastIndex);
+}
+
+PlayerControllerComponent* ComponentManager::GetPlayerController(Entity entity) {
+    auto it = m_entityToPlayerController.find(entity);
+    if (it == m_entityToPlayerController.end()) return nullptr;
+    return &m_playerControllers[it->second];
+}
+
+bool ComponentManager::HasPlayerController(Entity entity) const {
+    return m_entityToPlayerController.find(entity) != m_entityToPlayerController.end();
+}
+
+std::vector<Entity> ComponentManager::GetEntitiesWithPlayerController() const {
+    std::vector<Entity> entities;
+    for (const auto& pair : m_playerControllerToEntity) {
+        entities.push_back(pair.second);
+    }
+    return entities;
+}
+
+std::vector<Entity> ComponentManager::GetEntitiesWithPlayerControllerAndTransform() const {
+    std::vector<Entity> entities;
+    if (m_playerControllers.size() < m_transforms.size()) {
+        for (const auto& pair : m_playerControllerToEntity) {
+            if (HasTransform(pair.second)) {
+                entities.push_back(pair.second);
+            }
+        }
+    } else {
+        for (const auto& pair : m_transformToEntity) {
+            if (HasPlayerController(pair.second)) {
                 entities.push_back(pair.second);
             }
         }

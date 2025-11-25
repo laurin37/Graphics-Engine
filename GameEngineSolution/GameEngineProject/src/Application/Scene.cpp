@@ -72,7 +72,7 @@ void Scene::Load()
     // 1. Floor
     ECS::Entity floor = m_ecsComponentManager.CreateEntity();
     ECS::TransformComponent floorTrans;
-    floorTrans.position = { 0.0f, -1.0f, 0.0f };
+    floorTrans.position = { 0.0f, -0.05f, 0.0f };
     floorTrans.scale = { 100.0f, 0.1f, 100.0f };
     m_ecsComponentManager.AddTransform(floor, floorTrans);
     ECS::RenderComponent floorRender;
@@ -80,12 +80,38 @@ void Scene::Load()
     floorRender.material = m_matFloor;
     m_ecsComponentManager.AddRender(floor, floorRender);
     ECS::PhysicsComponent floorPhys;
-    floorPhys.useGravity = false; // Static
+    floorPhys.useGravity = false;
+    floorPhys.checkCollisions = false; // Static objects don't check collisions
     m_ecsComponentManager.AddPhysics(floor, floorPhys);
     ECS::ColliderComponent floorCol = CalculateCollider(m_meshCube.get());
     m_ecsComponentManager.AddCollider(floor, floorCol);
 
-    // 2. Room
+    // 2. Player (First-Person Controller)
+    ECS::Entity player = m_ecsComponentManager.CreateEntity();
+    ECS::TransformComponent playerTrans;
+    playerTrans.position = { 0.0f, 1.0f, -5.0f };
+    playerTrans.scale = { 0.4f, 1.8f, 0.4f };
+    m_ecsComponentManager.AddTransform(player, playerTrans);
+    ECS::RenderComponent playerRender;
+    playerRender.mesh = m_meshCylinder.get();
+    playerRender.material = m_matPillar;
+    m_ecsComponentManager.AddRender(player, playerRender);
+    ECS::PhysicsComponent playerPhys;
+    playerPhys.useGravity = true;
+    playerPhys.mass = 1.0f;
+    playerPhys.checkCollisions = true;
+    playerPhys.gravityAcceleration = -15.0f;
+    playerPhys.maxFallSpeed = -15.0f;
+    m_ecsComponentManager.AddPhysics(player, playerPhys);
+    ECS::ColliderComponent playerCol;
+    playerCol.localAABB.center = { 0.0f, 0.0f, 0.0f }; // Center at entity position (feet)
+    playerCol.localAABB.extents = { 0.4f, 0.5f, 0.4f }; // Half-size
+    m_ecsComponentManager.AddCollider(player, playerCol);
+    ECS::PlayerControllerComponent playerCtrl;
+    // Use defaults (moveSpeed=5, jumpForce=7, etc.)
+    m_ecsComponentManager.AddPlayerController(player, playerCtrl);
+
+    // 3. Room
     ECS::Entity room = m_ecsComponentManager.CreateEntity();
     ECS::TransformComponent roomTrans;
     roomTrans.position = { 30.0f, -1.0f, 30.0f };
@@ -100,7 +126,7 @@ void Scene::Load()
     ECS::ColliderComponent roomCol = CalculateCollider(m_meshRoom.get());
     m_ecsComponentManager.AddCollider(room, roomCol);
 
-    // 3. Pillars & Roofs
+    // 4. Pillars & Roofs
     float pillarDist = 6.0f;
     float pillarPositions[4][2] = { {pillarDist, pillarDist}, {pillarDist, -pillarDist}, {-pillarDist, pillarDist}, {-pillarDist, -pillarDist} };
     for (int i = 0; i < 4; i++) {
@@ -135,7 +161,7 @@ void Scene::Load()
         m_ecsComponentManager.AddPhysics(roof, roofPhys);
     }
 
-    // 4. Pedestal
+    // 5. Pedestal
     ECS::Entity pedestal = m_ecsComponentManager.CreateEntity();
     ECS::TransformComponent pedTrans;
     pedTrans.position = { 0.0f, 0.0f, 0.0f };
@@ -151,7 +177,7 @@ void Scene::Load()
     ECS::ColliderComponent pedCol = CalculateCollider(m_meshCube.get());
     m_ecsComponentManager.AddCollider(pedestal, pedCol);
 
-    // 5. Artifact (Rotating)
+    // 6. Artifact (Rotating)
     ECS::Entity artifact = m_ecsComponentManager.CreateEntity();
     ECS::TransformComponent artTrans;
     artTrans.position = { 0.0f, 2.0f, 0.0f };
@@ -170,7 +196,7 @@ void Scene::Load()
     artRot.speed = 1.0f;
     m_ecsComponentManager.AddRotate(artifact, artRot);
 
-    // 6. Orbs (Orbiting + Lights)
+    // 7. Orbs (Orbiting + Lights)
     float orbRadius = 3.0f;
     std::shared_ptr<Material> orbMaterials[4] = { m_matOrbRed, m_matOrbGreen, m_matOrbBlue, m_matOrbOrange };
     DirectX::XMFLOAT4 orbColors[4] = { 
@@ -213,7 +239,7 @@ void Scene::Load()
         m_ecsComponentManager.AddLight(orb, orbLight);
     }
 
-    // 7. Falling Box
+    // 8. Falling Box
     ECS::Entity box = m_ecsComponentManager.CreateEntity();
     ECS::TransformComponent boxTrans;
     boxTrans.position = { -5.0f, 10.0f, 0.0f };
@@ -458,58 +484,10 @@ void Scene::Update(float deltaTime, Input& input)
     }
 
     if (m_useECS) {
-        // ECS Mode: Update physics system + free camera
+        // ECS Mode: Update physics, movement, and player controller
         m_ecsPhysicsSystem.Update(m_ecsComponentManager, deltaTime);
         m_ecsMovementSystem.Update(m_ecsComponentManager, deltaTime);
-        
-        // Free camera controls (WASD + Mouse)
-        const float CAMERA_SPEED = 5.0f;
-        const float MOUSE_SENSITIVITY = 0.001f;
-        
-        // Mouse look
-        int dx = input.GetMouseDeltaX();
-        int dy = input.GetMouseDeltaY();
-        m_camera->AdjustRotation(dy * MOUSE_SENSITIVITY, dx * MOUSE_SENSITIVITY, 0.0f);
-        
-        // WASD movement
-        DirectX::XMVECTOR forward = m_camera->GetForward();
-        DirectX::XMVECTOR right = m_camera->GetRight();
-        DirectX::XMFLOAT3 camPos = m_camera->GetPositionFloat3();
-        
-        DirectX::XMFLOAT3 fwd, rgt;
-        DirectX::XMStoreFloat3(&fwd, forward);
-        DirectX::XMStoreFloat3(&rgt, right);
-        
-        if (input.IsKeyDown('W')) {
-            camPos.x += fwd.x * CAMERA_SPEED * deltaTime;
-            camPos.y += fwd.y * CAMERA_SPEED * deltaTime;
-            camPos.z += fwd.z * CAMERA_SPEED * deltaTime;
-        }
-        if (input.IsKeyDown('S')) {
-            camPos.x -= fwd.x * CAMERA_SPEED * deltaTime;
-            camPos.y -= fwd.y * CAMERA_SPEED * deltaTime;
-            camPos.z -= fwd.z * CAMERA_SPEED * deltaTime;
-        }
-        if (input.IsKeyDown('A')) {
-            camPos.x -= rgt.x * CAMERA_SPEED * deltaTime;
-            camPos.y -= rgt.y * CAMERA_SPEED * deltaTime;
-            camPos.z -= rgt.z * CAMERA_SPEED * deltaTime;
-        }
-        if (input.IsKeyDown('D')) {
-            camPos.x += rgt.x * CAMERA_SPEED * deltaTime;
-            camPos.y += rgt.y * CAMERA_SPEED * deltaTime;
-            camPos.z += rgt.z * CAMERA_SPEED * deltaTime;
-        }
-        
-        // Up/Down with Space/Ctrl
-        if (input.IsKeyDown(VK_SPACE)) {
-            camPos.y += CAMERA_SPEED * deltaTime;
-        }
-        if (input.IsKeyDown(VK_CONTROL)) {
-            camPos.y -= CAMERA_SPEED * deltaTime;
-        }
-        
-        m_camera->SetPosition(camPos.x, camPos.y, camPos.z);
+        m_ecsPlayerMovementSystem.Update(m_ecsComponentManager, input, *m_camera, deltaTime);
     } else 
     {
         // GameObject Mode: Update player, bullets, animations, etc.
@@ -747,6 +725,72 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
                 snprintf(posBuffer, sizeof(posBuffer), "Entity[0] Pos: (%.1f, %.1f, %.1f)", 
                     trans->position.x, trans->position.y, trans->position.z);
                 uiRenderer->DrawString(m_font, posBuffer, 10.0f, 155.0f, 18.0f, white);
+            }
+        }
+        
+        // Display player position if exists
+        std::vector<ECS::Entity> players = m_ecsComponentManager.GetEntitiesWithPlayerController();
+        if (!players.empty()) {
+            ECS::TransformComponent* playerTrans = m_ecsComponentManager.GetTransform(players[0]);
+            ECS::PhysicsComponent* playerPhys = m_ecsComponentManager.GetPhysics(players[0]);
+            ECS::ColliderComponent* playerCol = m_ecsComponentManager.GetCollider(players[0]);
+            
+            if (playerTrans) {
+                char playerPosBuffer[128];
+                snprintf(playerPosBuffer, sizeof(playerPosBuffer), "Player Pos: (%.2f, %.2f, %.2f)", 
+                    playerTrans->position.x, playerTrans->position.y, playerTrans->position.z);
+                float green[4] = { 0.0f, 1.0f, 0.0f, 1.0f };
+                uiRenderer->DrawString(m_font, playerPosBuffer, 10.0f, 180.0f, 20.0f, green);
+            }
+            
+            // Display hitbox boundaries
+            if (playerTrans && playerCol) {
+                float centerOffsetY = playerCol->localAABB.center.y * playerTrans->scale.y;
+                float halfHeight = playerCol->localAABB.extents.y * playerTrans->scale.y;
+                float colliderCenterY = playerTrans->position.y + centerOffsetY;
+                float bottomY = colliderCenterY - halfHeight;
+                float topY = colliderCenterY + halfHeight;
+                
+                char hitboxBuffer[128];
+                snprintf(hitboxBuffer, sizeof(hitboxBuffer), "Hitbox: Bottom= %.2f, Top= %.2f (Floor=-0.95)", 
+                    bottomY, topY);
+                float cyan[4] = { 0.0f, 1.0f, 1.0f, 1.0f };
+                uiRenderer->DrawString(m_font, hitboxBuffer, 10.0f, 205.0f, 18.0f, cyan);
+            }
+            
+            if (playerPhys) {
+                char playerVelBuffer[128];
+                snprintf(playerVelBuffer, sizeof(playerVelBuffer), "Velocity: (%.2f, %.2f, %.2f) Grounded: %s", 
+                    playerPhys->velocity.x, playerPhys->velocity.y, playerPhys->velocity.z,
+                    playerPhys->isGrounded ? "YES" : "NO");
+                float yellow[4] = { 1.0f, 1.0f, 0.0f, 1.0f };
+                uiRenderer->DrawString(m_font, playerVelBuffer, 10.0f, 230.0f, 18.0f, yellow);
+            }
+        }
+        
+        // Display floor entity info
+        auto allEntities = m_ecsComponentManager.GetEntitiesWithTransform();
+        if (!allEntities.empty()) {
+            // First entity should be the floor
+            ECS::TransformComponent* floorTrans = m_ecsComponentManager.GetTransform(allEntities[0]);
+            ECS::ColliderComponent* floorCol = m_ecsComponentManager.GetCollider(allEntities[0]);
+            
+            if (floorTrans) {
+                char floorPosBuffer[128];
+                snprintf(floorPosBuffer, sizeof(floorPosBuffer), "Floor[0]: Pos=(%.2f, %.2f, %.2f) Scale=(%.1f, %.2f, %.1f)",
+                    floorTrans->position.x, floorTrans->position.y, floorTrans->position.z,
+                    floorTrans->scale.x, floorTrans->scale.y, floorTrans->scale.z);
+                float orange[4] = { 1.0f, 0.5f, 0.0f, 1.0f };
+                uiRenderer->DrawString(m_font, floorPosBuffer, 10.0f, 260.0f, 16.0f, orange);
+            }
+            
+            if (floorCol) {
+                char floorColBuffer[128];
+                snprintf(floorColBuffer, sizeof(floorColBuffer), "Floor Collider: Center=(%.2f,%.2f,%.2f) Extents=(%.2f,%.2f,%.2f)",
+                    floorCol->localAABB.center.x, floorCol->localAABB.center.y, floorCol->localAABB.center.z,
+                    floorCol->localAABB.extents.x, floorCol->localAABB.extents.y, floorCol->localAABB.extents.z);
+                float magenta[4] = { 1.0f, 0.0f, 1.0f, 1.0f };
+                uiRenderer->DrawString(m_font, floorColBuffer, 10.0f, 280.0f, 16.0f, magenta);
             }
         }
     }

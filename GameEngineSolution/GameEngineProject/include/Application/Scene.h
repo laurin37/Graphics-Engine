@@ -16,6 +16,7 @@
 #include "../ECS/Systems/ECSPhysicsSystem.h"
 #include "../ECS/Systems/ECSRenderSystem.h"
 #include "../ECS/Systems/ECSMovementSystem.h"
+#include "../ECS/Systems/PlayerMovementSystem.h"
 #include "../ECS/ECSExample.h"
 
 class AssetManager;
@@ -107,6 +108,7 @@ private:
     ECS::PhysicsSystem m_ecsPhysicsSystem;
     ECS::RenderSystem m_ecsRenderSystem;
     ECS::MovementSystem m_ecsMovementSystem;
+    ECS::PlayerMovementSystem m_ecsPlayerMovementSystem;
     
     bool m_useECS = false;  // Toggle between GameObject and ECS systems
 };

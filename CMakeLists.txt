@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.20)
 # 2. Project Name and Language
 project(GeminiDXEngine LANGUAGES CXX)
 
-# 3. Set C++ Standard to 23
+#3. Set C++ Standard to 23
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -46,6 +46,7 @@ set(SOURCE_FILES
     "GameEngineSolution/GameEngineProject/src/ECS/Systems/ECSPhysicsSystem.cpp"
     "GameEngineSolution/GameEngineProject/src/ECS/Systems/ECSRenderSystem.cpp"
     "GameEngineSolution/GameEngineProject/src/ECS/Systems/ECSMovementSystem.cpp"
+    "GameEngineSolution/GameEngineProject/src/ECS/Systems/PlayerMovementSystem.cpp"
 )
 
 # 5. Create the Executable (The .exe)

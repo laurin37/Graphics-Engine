@@ -51,9 +51,6 @@ public:
     // ========================================
     // Component Management - Collider
     // ========================================
-    // ========================================
-    // Component Management - Collider
-    // ========================================
     void AddCollider(Entity entity, const ColliderComponent& component);
     void RemoveCollider(Entity entity);
     ColliderComponent* GetCollider(Entity entity);
@@ -84,6 +81,14 @@ public:
     bool HasOrbit(Entity entity) const;
     
     // ========================================
+    // Component Management - PlayerController
+    // ========================================
+    void AddPlayerController(Entity entity, const PlayerControllerComponent& component);
+    void RemovePlayerController(Entity entity);
+    PlayerControllerComponent* GetPlayerController(Entity entity);
+    bool HasPlayerController(Entity entity) const;
+    
+    // ========================================
     // Queries (for systems to iterate entities)
     // ========================================
     std::vector<Entity> GetEntitiesWithTransform() const;
@@ -93,8 +98,10 @@ public:
     std::vector<Entity> GetEntitiesWithLight() const;
     std::vector<Entity> GetEntitiesWithRotate() const;
     std::vector<Entity> GetEntitiesWithOrbit() const;
+    std::vector<Entity> GetEntitiesWithPlayerController() const;
     
     // Get entities with multiple components
+    std::vector<Entity> GetEntitiesWithPlayerControllerAndTransform() const;
     std::vector<Entity> GetEntitiesWithPhysicsAndTransform() const;
     std::vector<Entity> GetEntitiesWithRenderAndTransform() const;
     std::vector<Entity> GetEntitiesWithRotateAndTransform() const;
@@ -110,6 +117,7 @@ public:
     std::vector<LightComponent>& GetAllLights() { return m_lights; }
     std::vector<RotateComponent>& GetAllRotates() { return m_rotates; }
     std::vector<OrbitComponent>& GetAllOrbits() { return m_orbits; }
+    std::vector<PlayerControllerComponent>& GetAllPlayerControllers() { return m_playerControllers; }
     
     // ========================================
     // Stats
@@ -167,6 +175,11 @@ private:
     std::vector<OrbitComponent> m_orbits;
     std::unordered_map<Entity, size_t> m_entityToOrbit;
     std::unordered_map<size_t, Entity> m_orbitToEntity;
+    
+    // PlayerController components
+    std::vector<PlayerControllerComponent> m_playerControllers;
+    std::unordered_map<Entity, size_t> m_entityToPlayerController;
+    std::unordered_map<size_t, Entity> m_playerControllerToEntity;
 };
 
 } // namespace ECS
