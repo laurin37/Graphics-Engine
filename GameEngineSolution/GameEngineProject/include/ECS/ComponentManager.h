@@ -118,10 +118,16 @@ private:
     size_t m_size = 0;
 };
 
-// ========================================
-// ComponentManager
-// Central registry for all components
-// ========================================
+// ==================================================================================
+// ComponentManager Class
+// ----------------------------------------------------------------------------------
+// The core of the ECS architecture.
+// Responsible for:
+// - Creating and destroying entities (IDs)
+// - Managing component arrays (Sparse Sets) for each component type
+// - Providing fast access to components for Systems
+// - Ensuring memory locality for better cache performance
+// ==================================================================================
 class ComponentManager {
 public:
     ComponentManager() = default;

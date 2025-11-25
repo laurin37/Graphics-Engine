@@ -37,6 +37,16 @@ class Mesh;
 class Material;
 struct DirectionalLight;
 
+// ==================================================================================
+// Scene Class
+// ----------------------------------------------------------------------------------
+// Manages the game world, including entities, systems, and resources.
+// It acts as the central hub for the ECS (Entity Component System) and handles:
+// - Initialization of systems (Physics, Rendering, Gameplay)
+// - Loading and management of game assets (Meshes, Textures)
+// - The main Update loop (propagating time deltas to systems)
+// - The Render loop (coordinating with the Renderer and UI)
+// ==================================================================================
 class Scene
 {
 public:
@@ -61,6 +71,11 @@ private:
     void RemoveRenderCacheEntry(size_t index);
     void RefreshRenderCacheEntry(size_t index, const ECS::TransformComponent* transform, const ECS::RenderComponent* render);
     bool TryComputeWorldBounds(ECS::Entity entity, const ECS::TransformComponent* transform, Renderer::RenderInstance& instance);
+
+    // Render helpers
+    void GatherLights(std::vector<PointLight>& outLights);
+    bool SetupCamera(Camera& outCamera, DirectX::XMMATRIX& outView, DirectX::XMMATRIX& outProj);
+    void RenderUI(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision);
 
 public:
     // Non-owning pointers

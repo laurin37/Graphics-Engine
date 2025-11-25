@@ -30,6 +30,16 @@ struct ID3D11DepthStencilState;
 struct ID3D11RasterizerState;
 class AssetManager; // Forward Declaration
 
+// ==================================================================================
+// Renderer Class
+// ----------------------------------------------------------------------------------
+// Handles the low-level rendering pipeline using DirectX 11.
+// Responsible for:
+// - Managing D3D11 resources (Shaders, Buffers, Textures)
+// - Implementing the rendering passes (Shadow Pass -> Main Pass -> Post Process)
+// - Drawing meshes with materials and lighting
+// - Debug rendering (Wireframe AABBs)
+// ==================================================================================
 class Renderer
 {
 public:

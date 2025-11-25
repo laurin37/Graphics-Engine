@@ -125,89 +125,24 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     
     // Gather ECS lights
     std::vector<PointLight> ecsLights;
-    
-    auto lightArray = m_ecsComponentManager.GetComponentArray<ECS::LightComponent>();
-    auto& lightVec = lightArray->GetComponentArray();
-    
-    for (size_t i = 0; i < lightVec.size(); ++i) {
-        ECS::Entity entity = lightArray->GetEntityAtIndex(i);
-        ECS::LightComponent& light = lightVec[i];
-        
-        if (!light.enabled) continue;
-        
-        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity)) continue;
-        ECS::TransformComponent& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
-        
-        PointLight pl;
-        pl.position = DirectX::XMFLOAT4(transform.position.x, transform.position.y, transform.position.z, light.range);
-        pl.color = light.color;
-        // Default attenuation (Constant, Linear, Quadratic)
-        // Adjust these values to change falloff characteristics
-        pl.attenuation = DirectX::XMFLOAT4(1.0f, 0.09f, 0.032f, 0.0f); 
-        ecsLights.push_back(pl);
-    }
+    GatherLights(ecsLights);
     
     // Get ECS camera and create temporary Camera adapter for renderer
     DirectX::XMMATRIX ecsView, ecsProj;
     Camera tempCamera;  // Temporary adapter
     
-    if (m_ecsCameraSystem->GetActiveCamera(ecsView, ecsProj)) {
-        // Find player entity with camera to get position/rotation
-        ECS::Entity cameraEntity = m_ecsCameraSystem->GetActiveCameraEntity();
+    if (SetupCamera(tempCamera, ecsView, ecsProj)) {
+        // Render scene
+        renderer->RenderFrame(tempCamera, renderInstanceViews, m_dirLight, ecsLights);
         
-        if (m_ecsComponentManager.HasComponent<ECS::TransformComponent>(cameraEntity)) {
-            auto& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(cameraEntity);
-            
-            DirectX::XMFLOAT3 position = transform.position;
-            
-            if (m_ecsComponentManager.HasComponent<ECS::CameraComponent>(cameraEntity)) {
-                auto& cameraComp = m_ecsComponentManager.GetComponent<ECS::CameraComponent>(cameraEntity);
-                position.x += cameraComp.positionOffset.x;
-                position.y += cameraComp.positionOffset.y;
-                position.z += cameraComp.positionOffset.z;
-            }
-
-            float pitch = transform.rotation.x;
-            if (m_ecsComponentManager.HasComponent<ECS::PlayerControllerComponent>(cameraEntity)) {
-                auto& playerController = m_ecsComponentManager.GetComponent<ECS::PlayerControllerComponent>(cameraEntity);
-                pitch = playerController.viewPitch;
-            }
-            
-            tempCamera.SetPosition(position.x, position.y, position.z);
-            tempCamera.SetRotation(pitch, transform.rotation.y, transform.rotation.z);
+        // Render debug collision boxes
+        if (showDebugCollision) {
+            m_ecsRenderSystem->RenderDebug(renderer, tempCamera);
         }
     }
     
-    // Render scene
-    renderer->RenderFrame(tempCamera, renderInstanceViews, m_dirLight, ecsLights);
-    
-    // Render debug collision boxes
-    if (showDebugCollision) {
-        m_ecsRenderSystem->RenderDebug(renderer, tempCamera);
-    }
-    
     // Render UI
-    uiRenderer->EnableUIState();
-
-    if (m_crosshair) {
-        m_crosshair->Draw(uiRenderer, m_font, 1280, 720);
-    }
-
-    // Render debug UI (can be toggled with F1)
-    if (m_debugUI.IsEnabled()) {
-        ECS::Entity activeCamera = m_ecsCameraSystem->GetActiveCameraEntity();
-        m_debugUI.Render(
-            uiRenderer, 
-            m_font, 
-            m_fps, 
-            renderer->GetPostProcess()->IsBloomEnabled(),
-            showDebugCollision,
-            m_ecsComponentManager,
-            activeCamera
-        );
-    }
-
-    uiRenderer->DisableUIState();
+    RenderUI(renderer, uiRenderer, showDebugCollision);
 }
 
 void Scene::RebuildRenderCache()
@@ -382,4 +317,86 @@ bool Scene::TryComputeWorldBounds(ECS::Entity entity, const ECS::TransformCompon
     }
 
     return false;
+}
+
+void Scene::GatherLights(std::vector<PointLight>& outLights)
+{
+    auto lightArray = m_ecsComponentManager.GetComponentArray<ECS::LightComponent>();
+    auto& lightVec = lightArray->GetComponentArray();
+    
+    for (size_t i = 0; i < lightVec.size(); ++i) {
+        ECS::Entity entity = lightArray->GetEntityAtIndex(i);
+        ECS::LightComponent& light = lightVec[i];
+        
+        if (!light.enabled) continue;
+        
+        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity)) continue;
+        ECS::TransformComponent& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
+        
+        PointLight pl;
+        pl.position = DirectX::XMFLOAT4(transform.position.x, transform.position.y, transform.position.z, light.range);
+        pl.color = light.color;
+        // Default attenuation (Constant, Linear, Quadratic)
+        pl.attenuation = DirectX::XMFLOAT4(1.0f, 0.09f, 0.032f, 0.0f); 
+        outLights.push_back(pl);
+    }
+}
+
+bool Scene::SetupCamera(Camera& outCamera, DirectX::XMMATRIX& outView, DirectX::XMMATRIX& outProj)
+{
+    if (!m_ecsCameraSystem->GetActiveCamera(outView, outProj)) {
+        return false;
+    }
+
+    // Find player entity with camera to get position/rotation
+    ECS::Entity cameraEntity = m_ecsCameraSystem->GetActiveCameraEntity();
+    
+    if (m_ecsComponentManager.HasComponent<ECS::TransformComponent>(cameraEntity)) {
+        auto& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(cameraEntity);
+        
+        DirectX::XMFLOAT3 position = transform.position;
+        
+        if (m_ecsComponentManager.HasComponent<ECS::CameraComponent>(cameraEntity)) {
+            auto& cameraComp = m_ecsComponentManager.GetComponent<ECS::CameraComponent>(cameraEntity);
+            position.x += cameraComp.positionOffset.x;
+            position.y += cameraComp.positionOffset.y;
+            position.z += cameraComp.positionOffset.z;
+        }
+
+        float pitch = transform.rotation.x;
+        if (m_ecsComponentManager.HasComponent<ECS::PlayerControllerComponent>(cameraEntity)) {
+            auto& playerController = m_ecsComponentManager.GetComponent<ECS::PlayerControllerComponent>(cameraEntity);
+            pitch = playerController.viewPitch;
+        }
+        
+        outCamera.SetPosition(position.x, position.y, position.z);
+        outCamera.SetRotation(pitch, transform.rotation.y, transform.rotation.z);
+        return true;
+    }
+    return false;
+}
+
+void Scene::RenderUI(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision)
+{
+    uiRenderer->EnableUIState();
+
+    if (m_crosshair) {
+        m_crosshair->Draw(uiRenderer, m_font, 1280, 720);
+    }
+
+    // Render debug UI (can be toggled with F1)
+    if (m_debugUI.IsEnabled()) {
+        ECS::Entity activeCamera = m_ecsCameraSystem->GetActiveCameraEntity();
+        m_debugUI.Render(
+            uiRenderer, 
+            m_font, 
+            m_fps, 
+            renderer->GetPostProcess()->IsBloomEnabled(),
+            showDebugCollision,
+            m_ecsComponentManager,
+            activeCamera
+        );
+    }
+
+    uiRenderer->DisableUIState();
 }

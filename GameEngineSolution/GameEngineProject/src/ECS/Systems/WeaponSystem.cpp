@@ -95,7 +95,7 @@ void WeaponSystem::FireProjectile(ECS::Entity entity, ECS::TransformComponent& t
     projComp.velocity = physics.velocity; // Redundant but used by ProjectileSystem
     m_componentManager.AddComponent(projectile, projComp);
 
-    std::cout << "Fired Projectile!" << std::endl;
+    // std::cout << "Fired Projectile!" << std::endl;
 }
 
 void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, ECS::TransformComponent& transform) {
@@ -103,8 +103,7 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
     weapon.currentAmmo--;
 
     std::string bangMsg = std::format("BANG! Ammo: {}/{}", weapon.currentAmmo, weapon.maxAmmo);
-    std::cout << bangMsg << std::endl;
-    DebugUIRenderer::AddMessage(bangMsg, 5.0f);
+    DebugUIRenderer::AddMessage(bangMsg, 1.0f);
 
     // Calculate ray origin and direction
     // Origin is player position + camera offset (if any)
@@ -142,9 +141,6 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
     
     ECS::Entity hitEntity = ECS::NULL_ENTITY;
     float minDistance = weapon.range;
-
-    std::cout << std::format("Ray Origin: ({:.2f}, {:.2f}, {:.2f}) Dir: ({:.2f}, {:.2f}, {:.2f})", 
-        rayOrigin.x, rayOrigin.y, rayOrigin.z, rayDir.x, rayDir.y, rayDir.z) << std::endl;
 
     // Iterate over ColliderComponent array (Walls, Props, etc.)
     auto colliderArray = m_componentManager.GetComponentArray<ECS::ColliderComponent>();
@@ -236,16 +232,9 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
     }
 
     if (hitEntity != ECS::NULL_ENTITY) {
-        std::string hitMsg = std::format("Hit Entity {}!", hitEntity);
-        std::cout << hitMsg << std::endl;
-        DebugUIRenderer::AddMessage(hitMsg, 2.0f);
-        
         if (m_componentManager.HasComponent<ECS::HealthComponent>(hitEntity)) {
             auto& health = m_componentManager.GetComponent<ECS::HealthComponent>(hitEntity);
             health.currentHealth -= weapon.damage;
-            std::cout << std::format("Entity {} Health: {}", hitEntity, health.currentHealth) << std::endl;
-        } else {
-             DebugUIRenderer::AddMessage("Hit Wall/Object", 1.0f);
         }
     }
 }
