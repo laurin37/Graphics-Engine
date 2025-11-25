@@ -10,6 +10,7 @@
 #include "../../include/Input/Input.h"
 #include "../../include/Renderer/PostProcess.h"
 #include <format>
+#include <cmath>
 
 Scene::Scene(AssetManager* assetManager, Graphics* graphics)
     : m_assetManager(assetManager), 
@@ -64,6 +65,7 @@ void Scene::Load()
     
     // Load scene from JSON
     LoadSceneFromJSON(L"Assets/Scenes/default.json");
+    RebuildRenderCache();
 }
 
 void Scene::LoadSceneFromJSON(const std::wstring& jsonPath) {
@@ -125,40 +127,13 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
 {
     if (!renderer || !uiRenderer) return;
 
-    // Collect render instances directly from ECS data
-    std::vector<Renderer::RenderInstance> renderInstances;
-    
-    // Get all entities with Transform and Render components
-    const auto& entities = m_ecsComponentManager.GetEntitiesWithRenderAndTransform();
-    renderInstances.reserve(entities.size());
-    
-    for (ECS::Entity entity : entities) {
-        auto* transform = m_ecsComponentManager.GetTransform(entity);
-        auto* render = m_ecsComponentManager.GetRender(entity);
-        
-        if (transform && render && render->mesh && render->material) {
-            Renderer::RenderInstance instance;
-            instance.mesh = render->mesh;
-            instance.material = render->material.get();
-            instance.position = transform->position;
-            instance.rotation = transform->rotation;
-            instance.scale = transform->scale;
+    UpdateRenderCache();
 
-            if (auto* collider = m_ecsComponentManager.GetCollider(entity); collider && collider->enabled) {
-                instance.hasBounds = true;
-                instance.worldAABB.extents.x = collider->localAABB.extents.x * transform->scale.x;
-                instance.worldAABB.extents.y = collider->localAABB.extents.y * transform->scale.y;
-                instance.worldAABB.extents.z = collider->localAABB.extents.z * transform->scale.z;
-
-                instance.worldAABB.center.x = transform->position.x + (transform->scale.x * collider->localAABB.center.x);
-                instance.worldAABB.center.y = transform->position.y + (transform->scale.y * collider->localAABB.center.y);
-                instance.worldAABB.center.z = transform->position.z + (transform->scale.z * collider->localAABB.center.z);
-            } else {
-                instance.hasBounds = false;
-            }
-
-            renderInstances.push_back(instance);
-        }
+    std::vector<const Renderer::RenderInstance*> renderInstanceViews;
+    renderInstanceViews.reserve(m_renderCache.size());
+    for (auto& entry : m_renderCache)
+    {
+        renderInstanceViews.push_back(&entry.instance);
     }
     
     // Gather ECS lights
@@ -201,7 +176,7 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     }
     
     // Render scene
-    renderer->RenderFrame(tempCamera, renderInstances, m_dirLight, ecsLights);
+    renderer->RenderFrame(tempCamera, renderInstanceViews, m_dirLight, ecsLights);
     
     // Render debug collision boxes
     if (showDebugCollision) {
@@ -226,4 +201,151 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     );
 
     uiRenderer->DisableUIState();
+}
+
+void Scene::RebuildRenderCache()
+{
+    m_renderCache.clear();
+    m_entityToRenderCacheIndex.clear();
+
+    const auto& entities = m_ecsComponentManager.GetEntitiesWithRenderAndTransform();
+    m_renderCache.reserve(entities.size());
+
+    for (ECS::Entity entity : entities)
+    {
+        auto* transform = m_ecsComponentManager.GetTransform(entity);
+        auto* render = m_ecsComponentManager.GetRender(entity);
+        if (!transform || !render || !render->mesh || !render->material) continue;
+        CreateRenderCacheEntry(entity, transform, render);
+    }
+}
+
+void Scene::UpdateRenderCache()
+{
+    for (size_t i = 0; i < m_renderCache.size();)
+    {
+        ECS::Entity entity = m_renderCache[i].entity;
+        auto* transform = m_ecsComponentManager.GetTransform(entity);
+        auto* render = m_ecsComponentManager.GetRender(entity);
+
+        if (!transform || !render || !render->mesh || !render->material)
+        {
+            RemoveRenderCacheEntry(i);
+            continue;
+        }
+
+        bool transformChanged =
+            transform->position.x != m_renderCache[i].lastPosition.x ||
+            transform->position.y != m_renderCache[i].lastPosition.y ||
+            transform->position.z != m_renderCache[i].lastPosition.z ||
+            transform->rotation.x != m_renderCache[i].lastRotation.x ||
+            transform->rotation.y != m_renderCache[i].lastRotation.y ||
+            transform->rotation.z != m_renderCache[i].lastRotation.z ||
+            transform->scale.x != m_renderCache[i].lastScale.x ||
+            transform->scale.y != m_renderCache[i].lastScale.y ||
+            transform->scale.z != m_renderCache[i].lastScale.z;
+
+        bool renderChanged =
+            render->mesh != m_renderCache[i].instance.mesh ||
+            render->material.get() != m_renderCache[i].instance.material;
+
+        if (transformChanged || renderChanged)
+        {
+            RefreshRenderCacheEntry(i, transform, render);
+        }
+
+        ++i;
+    }
+
+    const auto& entities = m_ecsComponentManager.GetEntitiesWithRenderAndTransform();
+    for (ECS::Entity entity : entities)
+    {
+        if (m_entityToRenderCacheIndex.find(entity) != m_entityToRenderCacheIndex.end()) continue;
+
+        auto* transform = m_ecsComponentManager.GetTransform(entity);
+        auto* render = m_ecsComponentManager.GetRender(entity);
+        if (!transform || !render || !render->mesh || !render->material) continue;
+
+        CreateRenderCacheEntry(entity, transform, render);
+    }
+}
+
+void Scene::RemoveRenderCacheEntry(size_t index)
+{
+    if (index >= m_renderCache.size()) return;
+
+    ECS::Entity entity = m_renderCache[index].entity;
+    m_entityToRenderCacheIndex.erase(entity);
+
+    size_t lastIndex = m_renderCache.size() - 1;
+    if (index != lastIndex)
+    {
+        std::swap(m_renderCache[index], m_renderCache[lastIndex]);
+        m_entityToRenderCacheIndex[m_renderCache[index].entity] = index;
+    }
+
+    m_renderCache.pop_back();
+}
+
+void Scene::RefreshRenderCacheEntry(size_t index, const ECS::TransformComponent* transform, const ECS::RenderComponent* render)
+{
+    auto& entry = m_renderCache[index];
+    entry.instance.mesh = render->mesh;
+    entry.instance.material = render->material.get();
+    entry.instance.position = transform->position;
+    entry.instance.rotation = transform->rotation;
+    entry.instance.scale = transform->scale;
+    entry.instance.hasBounds = TryComputeWorldBounds(entry.entity, transform, entry.instance);
+
+    entry.lastPosition = transform->position;
+    entry.lastRotation = transform->rotation;
+    entry.lastScale = transform->scale;
+}
+
+void Scene::CreateRenderCacheEntry(ECS::Entity entity, const ECS::TransformComponent* transform, const ECS::RenderComponent* render)
+{
+    RenderCacheEntry entry;
+    entry.entity = entity;
+    entry.instance.mesh = render->mesh;
+    entry.instance.material = render->material.get();
+    entry.instance.position = transform->position;
+    entry.instance.rotation = transform->rotation;
+    entry.instance.scale = transform->scale;
+    entry.instance.hasBounds = TryComputeWorldBounds(entity, transform, entry.instance);
+    entry.lastPosition = transform->position;
+    entry.lastRotation = transform->rotation;
+    entry.lastScale = transform->scale;
+
+    m_entityToRenderCacheIndex[entity] = m_renderCache.size();
+    m_renderCache.push_back(entry);
+}
+
+bool Scene::TryComputeWorldBounds(ECS::Entity entity, const ECS::TransformComponent* transform, Renderer::RenderInstance& instance)
+{
+    if (!transform) return false;
+
+    auto computeFromLocal = [&](const AABB& localBounds)
+    {
+        instance.worldAABB.extents.x = std::abs(transform->scale.x) * localBounds.extents.x;
+        instance.worldAABB.extents.y = std::abs(transform->scale.y) * localBounds.extents.y;
+        instance.worldAABB.extents.z = std::abs(transform->scale.z) * localBounds.extents.z;
+
+        instance.worldAABB.center.x = transform->position.x + transform->scale.x * localBounds.center.x;
+        instance.worldAABB.center.y = transform->position.y + transform->scale.y * localBounds.center.y;
+        instance.worldAABB.center.z = transform->position.z + transform->scale.z * localBounds.center.z;
+    };
+
+    if (auto* collider = m_ecsComponentManager.GetCollider(entity); collider && collider->enabled)
+    {
+        computeFromLocal(collider->localAABB);
+        return true;
+    }
+
+    if (auto* render = m_ecsComponentManager.GetRender(entity); render && render->mesh)
+    {
+        computeFromLocal(render->mesh->GetLocalBounds());
+        return true;
+    }
+
+    return false;
 }

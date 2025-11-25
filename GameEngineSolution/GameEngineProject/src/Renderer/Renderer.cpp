@@ -56,7 +56,7 @@ namespace
 
 void Renderer::RenderFrame(
     const Camera& camera,
-    const std::vector<RenderInstance>& instances,
+    const std::vector<const RenderInstance*>& instances,
     const DirectionalLight& dirLight,
     const std::vector<PointLight>& pointLights)
 {
@@ -71,21 +71,26 @@ void Renderer::RenderFrame(
     XMMATRIX invView = XMMatrixInverse(nullptr, viewMatrix);
     frustumWorld.Transform(frustumWorld, invView);
 
-    for (const auto& instance : instances)
+    for (const auto* instance : instances)
     {
-        if (!instance.hasBounds)
+        if (!instance)
         {
-            visibleInstances.push_back(&instance);
+            continue;
+        }
+
+        if (!instance->hasBounds)
+        {
+            visibleInstances.push_back(instance);
             continue;
         }
 
         BoundingBox box;
-        box.Center = instance.worldAABB.center;
-        box.Extents = instance.worldAABB.extents;
+        box.Center = instance->worldAABB.center;
+        box.Extents = instance->worldAABB.extents;
 
         if (frustumWorld.Intersects(box))
         {
-            visibleInstances.push_back(&instance);
+            visibleInstances.push_back(instance);
         }
     }
 

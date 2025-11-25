@@ -5,13 +5,14 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
+#include <DirectXMath.h>
 
-#include "../EntityComponentSystem/GameObject.h"
 #include "../EntityComponentSystem/Camera.h"
 #include "../UI/SimpleFont.h"
 #include "../UI/Crosshair.h"
 #include "../UI/DebugUIRenderer.h"
 #include "../Renderer/Graphics.h"
+#include "../Renderer/Renderer.h"
 #include "../ECS/ComponentManager.h"
 #include "../ECS/Systems/ECSPhysicsSystem.h"
 #include "../ECS/Systems/ECSRenderSystem.h"
@@ -50,6 +51,12 @@ private:
     // Asset lookup for JSON scene loading
     std::unordered_map<std::string, Mesh*> BuildMeshLookup();
     std::unordered_map<std::string, std::shared_ptr<Material>> BuildMaterialLookup();
+    void RebuildRenderCache();
+    void UpdateRenderCache();
+    void RemoveRenderCacheEntry(size_t index);
+    void RefreshRenderCacheEntry(size_t index, const ECS::TransformComponent* transform, const ECS::RenderComponent* render);
+    void CreateRenderCacheEntry(ECS::Entity entity, const ECS::TransformComponent* transform, const ECS::RenderComponent* render);
+    bool TryComputeWorldBounds(ECS::Entity entity, const ECS::TransformComponent* transform, Renderer::RenderInstance& instance);
 
     // Non-owning pointers
     AssetManager* m_assetManager;
@@ -94,4 +101,16 @@ private:
     ECS::MovementSystem m_ecsMovementSystem;
     ECS::PlayerMovementSystem m_ecsPlayerMovementSystem;
     ECS::CameraSystem m_ecsCameraSystem;
+
+    struct RenderCacheEntry
+    {
+        ECS::Entity entity = ECS::NULL_ENTITY;
+        Renderer::RenderInstance instance{};
+        DirectX::XMFLOAT3 lastPosition{ 0.0f,0.0f,0.0f };
+        DirectX::XMFLOAT3 lastRotation{ 0.0f,0.0f,0.0f };
+        DirectX::XMFLOAT3 lastScale{ 1.0f,1.0f,1.0f };
+    };
+
+    std::vector<RenderCacheEntry> m_renderCache;
+    std::unordered_map<ECS::Entity, size_t> m_entityToRenderCacheIndex;
 };

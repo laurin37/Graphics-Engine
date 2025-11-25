@@ -6,6 +6,7 @@
 #include <DirectXMath.h>
 
 #include "../Utils/EnginePCH.h"
+#include "../Physics/Collision.h"
 
 // Vertex structure - this is the input for our meshes
 struct Vertex
@@ -30,6 +31,7 @@ public:
     // Accessors for collision generation
     const std::vector<Vertex>& GetVertices() const { return m_vertices; }
     size_t GetVertexCount() const { return m_vertices.size(); }
+    const AABB& GetLocalBounds() const { return m_bounds; }
 
 private:
     Microsoft::WRL::ComPtr<ID3D11Buffer> m_vertexBuffer;
@@ -38,4 +40,5 @@ private:
     
     // Store vertex data for collision generation
     std::vector<Vertex> m_vertices;
+    AABB m_bounds{};
 };

@@ -50,7 +50,7 @@ public:
     void Initialize(Graphics* graphics, AssetManager* assetManager, int width, int height);
     void RenderFrame(
         const Camera& camera,
-        const std::vector<RenderInstance>& instances,
+        const std::vector<const RenderInstance*>& instances,
         const DirectionalLight& dirLight,
         const std::vector<PointLight>& pointLights
     );
