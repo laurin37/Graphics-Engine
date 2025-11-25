@@ -151,10 +151,10 @@ struct WeaponComponent {
 // ========================================
 struct ProjectileComponent {
     DirectX::XMFLOAT3 velocity = { 0.0f, 0.0f, 0.0f };
-    float speed = 20.0f;
-    float lifetime = 5.0f;        // Seconds until auto-destroy
+    float speed = 5.0f;
+    float lifetime = 10.0f;        // Seconds until auto-destroy
     float damage = 20.0f;
-    float explosionRadius = 0.0f; // 0 = single target, >0 = AoE
+    float explosionRadius = 2.0f; // 0 = single target, >0 = AoE
 };
 
 } // namespace ECS

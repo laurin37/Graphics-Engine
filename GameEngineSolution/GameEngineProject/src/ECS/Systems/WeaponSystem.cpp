@@ -146,30 +146,60 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
     std::cout << std::format("Ray Origin: ({:.2f}, {:.2f}, {:.2f}) Dir: ({:.2f}, {:.2f}, {:.2f})", 
         rayOrigin.x, rayOrigin.y, rayOrigin.z, rayDir.x, rayDir.y, rayDir.z) << std::endl;
 
-    // Iterate over ALL entities with Health, not just Colliders
-    auto healthArray = componentManager.GetComponentArray<ECS::HealthComponent>();
-    for (size_t i = 0; i < healthArray->GetSize(); ++i) {
-        ECS::Entity targetEntity = healthArray->GetEntityAtIndex(i);
+    // Iterate over ColliderComponent array (Walls, Props, etc.)
+    auto colliderArray = componentManager.GetComponentArray<ECS::ColliderComponent>();
+    for (size_t i = 0; i < colliderArray->GetSize(); ++i) {
+        ECS::Entity targetEntity = colliderArray->GetEntityAtIndex(i);
         if (targetEntity == entity) continue; // Don't hit self
 
         if (!componentManager.HasComponent<ECS::TransformComponent>(targetEntity)) continue;
         auto& targetTransform = componentManager.GetComponent<ECS::TransformComponent>(targetEntity);
+        auto& collider = colliderArray->GetData(targetEntity);
+        
+        if (!collider.enabled) continue;
 
-        // Determine collision bounds
+        // Calculate World AABB (Axis Aligned approximation)
+        DirectX::XMFLOAT3 minBox, maxBox;
+        
+        // Center in world space
+        float cx = targetTransform.position.x + collider.localAABB.center.x * targetTransform.scale.x;
+        float cy = targetTransform.position.y + collider.localAABB.center.y * targetTransform.scale.y;
+        float cz = targetTransform.position.z + collider.localAABB.center.z * targetTransform.scale.z;
+        
+        // Extents in world space (abs scale to handle negative scale)
+        float ex = collider.localAABB.extents.x * std::abs(targetTransform.scale.x);
+        float ey = collider.localAABB.extents.y * std::abs(targetTransform.scale.y);
+        float ez = collider.localAABB.extents.z * std::abs(targetTransform.scale.z);
+
+        minBox = { cx - ex, cy - ey, cz - ez };
+        maxBox = { cx + ex, cy + ey, cz + ez };
+
+        float t = 0.0f;
+        if (RayAABBIntersect(rayOrigin, rayDir, minBox, maxBox, t)) {
+            if (t < minDistance) {
+                minDistance = t;
+                hitEntity = targetEntity;
+            }
+        }
+    }
+
+    // Iterate over HealthComponent array (Enemies without colliders)
+    auto healthArray = componentManager.GetComponentArray<ECS::HealthComponent>();
+    for (size_t i = 0; i < healthArray->GetSize(); ++i) {
+        ECS::Entity targetEntity = healthArray->GetEntityAtIndex(i);
+        if (targetEntity == entity) continue; // Don't hit self
+        
+        // Skip if already checked (has Collider)
+        if (componentManager.HasComponent<ECS::ColliderComponent>(targetEntity)) continue;
+
+        if (!componentManager.HasComponent<ECS::TransformComponent>(targetEntity)) continue;
+        auto& targetTransform = componentManager.GetComponent<ECS::TransformComponent>(targetEntity);
+
+        // Determine collision bounds (Render or Default)
         AABB localBounds;
         bool hasBounds = false;
 
-        // 1. Try ColliderComponent
-        if (componentManager.HasComponent<ECS::ColliderComponent>(targetEntity)) {
-            auto& collider = componentManager.GetComponent<ECS::ColliderComponent>(targetEntity);
-            if (collider.enabled) {
-                localBounds = collider.localAABB;
-                hasBounds = true;
-            }
-        }
-
-        // 2. Try RenderComponent (Mesh bounds) if no collider
-        if (!hasBounds && componentManager.HasComponent<ECS::RenderComponent>(targetEntity)) {
+        if (componentManager.HasComponent<ECS::RenderComponent>(targetEntity)) {
             auto& render = componentManager.GetComponent<ECS::RenderComponent>(targetEntity);
             if (render.mesh) {
                 localBounds = render.mesh->GetLocalBounds();
@@ -177,82 +207,99 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
             }
         }
 
-        // 3. Fallback to default unit sphere if nothing else
         if (!hasBounds) {
             localBounds.center = { 0.0f, 0.0f, 0.0f };
             localBounds.extents = { 0.5f, 0.5f, 0.5f }; // Default 1.0 size
         }
 
-        // Approximate collider as a sphere for simple raycasting
-        // Use the largest extent of the AABB * scale
-        float radius = std::max({
-            localBounds.extents.x * targetTransform.scale.x,
-            localBounds.extents.y * targetTransform.scale.y,
-            localBounds.extents.z * targetTransform.scale.z
-        });
+        // Calculate World AABB
+        DirectX::XMFLOAT3 minBox, maxBox;
+        
+        float cx = targetTransform.position.x + localBounds.center.x * targetTransform.scale.x;
+        float cy = targetTransform.position.y + localBounds.center.y * targetTransform.scale.y;
+        float cz = targetTransform.position.z + localBounds.center.z * targetTransform.scale.z;
+        
+        float ex = localBounds.extents.x * std::abs(targetTransform.scale.x);
+        float ey = localBounds.extents.y * std::abs(targetTransform.scale.y);
+        float ez = localBounds.extents.z * std::abs(targetTransform.scale.z);
 
-        // Center of the sphere is transform position + rotated local center (ignoring rotation for simplicity here)
-        DirectX::XMFLOAT3 center = {
-            targetTransform.position.x + localBounds.center.x * targetTransform.scale.x,
-            targetTransform.position.y + localBounds.center.y * targetTransform.scale.y,
-            targetTransform.position.z + localBounds.center.z * targetTransform.scale.z
-        };
+        minBox = { cx - ex, cy - ey, cz - ez };
+        maxBox = { cx + ex, cy + ey, cz + ez };
 
         float t = 0.0f;
-        bool intersect = RaySphereIntersect(rayOrigin, rayDir, center, radius, t);
-        
-        // Debug Log for every potential target
-        std::cout << std::format("Target {}: Center({:.2f}, {:.2f}, {:.2f}) Radius {:.2f} - Hit: {}", 
-           targetEntity, center.x, center.y, center.z, radius, intersect) << std::endl;
-
-        if (intersect) {
+        if (RayAABBIntersect(rayOrigin, rayDir, minBox, maxBox, t)) {
             if (t < minDistance) {
                 minDistance = t;
                 hitEntity = targetEntity;
-                std::cout << "  -> New closest hit!" << std::endl;
             }
         }
     }
 
     if (hitEntity != ECS::NULL_ENTITY) {
-        std::cout << std::format("Hit Entity {}!", hitEntity) << std::endl;
+        std::string hitMsg = std::format("Hit Entity {}!", hitEntity);
+        std::cout << hitMsg << std::endl;
+        DebugUIRenderer::AddMessage(hitMsg, 2.0f);
         
-        auto& health = componentManager.GetComponent<ECS::HealthComponent>(hitEntity);
-        health.currentHealth -= weapon.damage;
-        
-        std::cout << std::format("Entity {} Health: {}", hitEntity, health.currentHealth) << std::endl;
+        if (componentManager.HasComponent<ECS::HealthComponent>(hitEntity)) {
+            auto& health = componentManager.GetComponent<ECS::HealthComponent>(hitEntity);
+            health.currentHealth -= weapon.damage;
+            std::cout << std::format("Entity {} Health: {}", hitEntity, health.currentHealth) << std::endl;
+        } else {
+             DebugUIRenderer::AddMessage("Hit Wall/Object", 1.0f);
+        }
     }
 }
 
-bool WeaponSystem::RaySphereIntersect(
+bool WeaponSystem::RayAABBIntersect(
     const DirectX::XMFLOAT3& rayOrigin, 
     const DirectX::XMFLOAT3& rayDir, 
-    const DirectX::XMFLOAT3& sphereCenter, 
-    float sphereRadius, 
+    const DirectX::XMFLOAT3& boxMin, 
+    const DirectX::XMFLOAT3& boxMax, 
     float& t
 ) {
-    DirectX::XMFLOAT3 m = {
-        rayOrigin.x - sphereCenter.x,
-        rayOrigin.y - sphereCenter.y,
-        rayOrigin.z - sphereCenter.z
-    };
+    float tmin = 0.0f;
+    float tmax = FLT_MAX;
 
-    float b = m.x * rayDir.x + m.y * rayDir.y + m.z * rayDir.z;
-    float c = (m.x * m.x + m.y * m.y + m.z * m.z) - sphereRadius * sphereRadius;
+    // X axis
+    if (std::abs(rayDir.x) < 1e-6f) {
+        // Ray is parallel to slab. No hit if origin not within slab
+        if (rayOrigin.x < boxMin.x || rayOrigin.x > boxMax.x) return false;
+    } else {
+        float ood = 1.0f / rayDir.x;
+        float t1 = (boxMin.x - rayOrigin.x) * ood;
+        float t2 = (boxMax.x - rayOrigin.x) * ood;
+        if (t1 > t2) std::swap(t1, t2);
+        if (t1 > tmin) tmin = t1;
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return false;
+    }
 
-    // Exit if ray's origin is outside sphere (c > 0) and ray is pointing away from sphere (b > 0)
-    if (c > 0.0f && b > 0.0f) return false;
+    // Y axis
+    if (std::abs(rayDir.y) < 1e-6f) {
+        if (rayOrigin.y < boxMin.y || rayOrigin.y > boxMax.y) return false;
+    } else {
+        float ood = 1.0f / rayDir.y;
+        float t1 = (boxMin.y - rayOrigin.y) * ood;
+        float t2 = (boxMax.y - rayOrigin.y) * ood;
+        if (t1 > t2) std::swap(t1, t2);
+        if (t1 > tmin) tmin = t1;
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return false;
+    }
 
-    float discr = b * b - c;
+    // Z axis
+    if (std::abs(rayDir.z) < 1e-6f) {
+        if (rayOrigin.z < boxMin.z || rayOrigin.z > boxMax.z) return false;
+    } else {
+        float ood = 1.0f / rayDir.z;
+        float t1 = (boxMin.z - rayOrigin.z) * ood;
+        float t2 = (boxMax.z - rayOrigin.z) * ood;
+        if (t1 > t2) std::swap(t1, t2);
+        if (t1 > tmin) tmin = t1;
+        if (t2 < tmax) tmax = t2;
+        if (tmin > tmax) return false;
+    }
 
-    // A negative discriminant corresponds to ray missing sphere
-    if (discr < 0.0f) return false;
-
-    // Ray now found to intersect sphere, compute smallest t value of intersection
-    t = -b - sqrt(discr);
-
-    // If t is negative, ray started inside sphere so clamp t to zero
-    if (t < 0.0f) t = 0.0f;
-
+    t = tmin;
     return true;
 }

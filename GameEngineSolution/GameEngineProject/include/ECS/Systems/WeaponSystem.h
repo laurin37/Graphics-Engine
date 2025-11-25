@@ -11,12 +11,12 @@ private:
     void FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, ECS::TransformComponent& transform, ECS::ComponentManager& componentManager);
     void FireProjectile(ECS::Entity entity, ECS::TransformComponent& transform, ECS::ComponentManager& componentManager, Mesh* mesh, std::shared_ptr<Material> material);
     
-    // Simple ray-sphere intersection for hit detection
-    bool RaySphereIntersect(
+    // Simple ray-AABB intersection for hit detection
+    bool RayAABBIntersect(
         const DirectX::XMFLOAT3& rayOrigin, 
         const DirectX::XMFLOAT3& rayDir, 
-        const DirectX::XMFLOAT3& sphereCenter, 
-        float sphereRadius, 
+        const DirectX::XMFLOAT3& boxMin, 
+        const DirectX::XMFLOAT3& boxMax, 
         float& t
     );
 };
