@@ -386,9 +386,6 @@
                 "physics": {
                     "useGravity": false
                 },
-                "collider": {
-                    "autoGenerate": true
-                },
                 "orbit": {
                     "center": [
                         0.0,
@@ -432,9 +429,6 @@
                 },
                 "physics": {
                     "useGravity": false
-                },
-                "collider": {
-                    "autoGenerate": true
                 },
                 "orbit": {
                     "center": [
@@ -480,9 +474,6 @@
                 "physics": {
                     "useGravity": false
                 },
-                "collider": {
-                    "autoGenerate": true
-                },
                 "orbit": {
                     "center": [
                         0.0,
@@ -526,9 +517,6 @@
                 },
                 "physics": {
                     "useGravity": false
-                },
-                "collider": {
-                    "autoGenerate": true
                 },
                 "orbit": {
                     "center": [

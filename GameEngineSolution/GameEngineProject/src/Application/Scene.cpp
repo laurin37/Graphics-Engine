@@ -175,7 +175,7 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     uiRenderer->EnableUIState();
 
     if (m_crosshair) {
-        m_crosshair->Draw(uiRenderer, m_font, 1920, 1080);
+        m_crosshair->Draw(uiRenderer, m_font, 1280, 720);
     }
 
     uiRenderer->DisableUIState();
