@@ -1,5 +1,6 @@
 #include "../../include/UI/DebugUIRenderer.h"
 #include "../../include/UI/UIRenderer.h"
+#include <cmath>
 #include <string>
 
 DebugUIRenderer::DebugUIRenderer() : m_enabled(true)
@@ -57,21 +58,22 @@ void DebugUIRenderer::Render(
     std::vector<ECS::Entity> players = componentManager.GetEntitiesWithPlayerController();
     if (!players.empty()) {
         ECS::TransformComponent* playerTrans = componentManager.GetTransform(players[0]);
-        ECS::PlayerControllerComponent* playerCtrl = componentManager.GetPlayerController(players[0]);
+        ECS::RenderComponent* playerRender = componentManager.GetRender(players[0]);
         ECS::PhysicsComponent* playerPhys = componentManager.GetPhysics(players[0]);
         ECS::ColliderComponent* playerCol = componentManager.GetCollider(players[0]);
+        ECS::PlayerControllerComponent* playerCtrl = componentManager.GetPlayerController(players[0]);
+        ECS::CameraComponent* playerCam = componentManager.GetCamera(players[0]);
 
-        if (playerTrans) {
-            float feetY = playerTrans->position.y;
-            float headY = playerTrans->position.y;
+        if (playerTrans && playerCol) {
+            float feetY = playerTrans->position.y - playerTrans->scale.y;
+            float headY = playerTrans->position.y + playerTrans->scale.y;
 
-            // Calculate bounds if collider exists
-            if (playerCol) {
-                float scaledExtentsY = playerCol->localAABB.extents.y * playerTrans->scale.y;
-                float scaledCenterY = playerCol->localAABB.center.y * playerTrans->scale.y;
-                feetY = playerTrans->position.y + scaledCenterY - scaledExtentsY;
-                headY = playerTrans->position.y + scaledCenterY + scaledExtentsY;
-            }
+            const float scaleY = std::abs(playerTrans->scale.y);
+            const float colliderCenterOffsetY = playerCol->localAABB.center.y * scaleY;
+            const float colliderHalfHeight = playerCol->localAABB.extents.y * scaleY;
+
+            float feetYAABB = playerTrans->position.y + colliderCenterOffsetY - colliderHalfHeight;
+            float headYAABB = playerTrans->position.y + colliderCenterOffsetY + colliderHalfHeight;
 
             // Feet Position
             char playerPosBuffer[128];
@@ -80,11 +82,25 @@ void DebugUIRenderer::Render(
             uiRenderer->DrawString(font, playerPosBuffer, 10.0f, yPos, 20.0f, green);
             yPos += lineHeight;
 
-            // Head Position (Top of mesh/collider)
+            // Feet AABB
+            char playerPosAABBBuffer[128];
+            snprintf(playerPosAABBBuffer, sizeof(playerPosAABBBuffer), "Player Feet AABB: (%.2f, %.2f, %.2f)",
+                playerTrans->position.x, feetYAABB, playerTrans->position.z);
+            uiRenderer->DrawString(font, playerPosAABBBuffer, 10.0f, yPos, 20.0f, green);
+            yPos += lineHeight;
+
+            // Head Position
             char headPosBuffer[128];
             snprintf(headPosBuffer, sizeof(headPosBuffer), "Player Head: (%.2f, %.2f, %.2f)",
                 playerTrans->position.x, headY, playerTrans->position.z);
             uiRenderer->DrawString(font, headPosBuffer, 10.0f, yPos, 20.0f, green);
+            yPos += lineHeight;
+
+            // Head AABB
+            char headPosAABBBuffer[128];
+            snprintf(headPosAABBBuffer, sizeof(headPosAABBBuffer), "Player Head AABB: (%.2f, %.2f, %.2f)",
+                playerTrans->position.x, headYAABB, playerTrans->position.z);
+            uiRenderer->DrawString(font, headPosAABBBuffer, 10.0f, yPos, 20.0f, green);
             yPos += lineHeight;
         }
 

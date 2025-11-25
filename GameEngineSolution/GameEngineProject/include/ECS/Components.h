@@ -99,6 +99,7 @@ struct PlayerControllerComponent {
     float jumpForce = 7.0f;
     float mouseSensitivity = 0.002f;
     float cameraHeight = 0.7f; // Eye level offset from position
+    float viewPitch = 0.0f;    // Stored camera pitch (radians)
     bool canJump = true;
 };
 

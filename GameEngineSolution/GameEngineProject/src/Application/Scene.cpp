@@ -166,9 +166,20 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     if (m_ecsCameraSystem.GetActiveCamera(m_ecsComponentManager, ecsView, ecsProj)) {
         // Find player entity with camera to get position/rotation
         ECS::Entity cameraEntity = m_ecsComponentManager.GetActiveCamera();
-        if (auto* transform = m_ecsComponentManager.GetTransform(cameraEntity)) {
-            tempCamera.SetPosition(transform->position.x, transform->position.y, transform->position.z);
-            tempCamera.SetRotation(transform->rotation.x, transform->rotation.y, transform->rotation.z);
+        auto* transform = m_ecsComponentManager.GetTransform(cameraEntity);
+        auto* cameraComp = m_ecsComponentManager.GetCamera(cameraEntity);
+        auto* playerController = m_ecsComponentManager.GetPlayerController(cameraEntity);
+        if (transform) {
+            DirectX::XMFLOAT3 position = transform->position;
+            if (cameraComp) {
+                position.x += cameraComp->positionOffset.x;
+                position.y += cameraComp->positionOffset.y;
+                position.z += cameraComp->positionOffset.z;
+            }
+
+            float pitch = playerController ? playerController->viewPitch : transform->rotation.x;
+            tempCamera.SetPosition(position.x, position.y, position.z);
+            tempCamera.SetRotation(pitch, transform->rotation.y, transform->rotation.z);
         }
     }
     

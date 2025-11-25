@@ -13,6 +13,7 @@ void CameraSystem::Update(ComponentManager& cm) {
     for (Entity entity : cameras) {
         CameraComponent* camera = cm.GetCamera(entity);
         TransformComponent* transform = cm.GetTransform(entity);
+        PlayerControllerComponent* controller = cm.GetPlayerController(entity);
         
         if (!camera || !transform) continue;
         
@@ -24,7 +25,10 @@ void CameraSystem::Update(ComponentManager& cm) {
         
         // Update view matrix from transform
         XMVECTOR pos = XMLoadFloat3(&transform->position);
-        XMVECTOR rot = XMLoadFloat3(&transform->rotation);
+        float pitch = controller ? controller->viewPitch : transform->rotation.x;
+        float yaw = transform->rotation.y;
+        float roll = transform->rotation.z;
+        XMVECTOR rot = XMVectorSet(pitch, yaw, roll, 0.0f);
         
         // Apply camera offset
         XMVECTOR offset = XMLoadFloat3(&camera->positionOffset);

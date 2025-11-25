@@ -82,13 +82,17 @@ void PlayerMovementSystem::HandleMouseLook(Entity entity, TransformComponent& tr
     
     // Apply rotation (yaw = Y rotation, pitch = X rotation)
     transform.rotation.y += mouseDeltaX * controller.mouseSensitivity;  // Yaw
-    transform.rotation.x += mouseDeltaY * controller.mouseSensitivity;  // Pitch
+    controller.viewPitch += mouseDeltaY * controller.mouseSensitivity;  // Pitch
     
     // Clamp pitch to prevent flipping
     const float maxPitch = DirectX::XM_PI / 2.0f - 0.1f;
-    if (transform.rotation.x > maxPitch) transform.rotation.x = maxPitch;
-    if (transform.rotation.x < -maxPitch) transform.rotation.x = -maxPitch;
-    
+    if (controller.viewPitch > maxPitch) controller.viewPitch = maxPitch;
+    if (controller.viewPitch < -maxPitch) controller.viewPitch = -maxPitch;
+
+    // Keep the physical player mesh upright (only yaw affects it)
+    transform.rotation.x = 0.0f;
+    transform.rotation.z = 0.0f;
+
     // Note: CameraSystem will handle updating the camera view matrix based on this transform
 }
 
