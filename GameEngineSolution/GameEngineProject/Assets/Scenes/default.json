@@ -195,7 +195,11 @@
                     "range": 50.0,
                     "fireRate": 0.2,
                     "timeSinceLastShot": 0.0,
-                    "isAutomatic": true
+                    "isAutomatic": true,
+                    "currentAmmo": 30,
+                    "maxAmmo": 30,
+                    "projectileAmmo": 5,
+                    "maxProjectileAmmo": 5
                 }
             }
         },

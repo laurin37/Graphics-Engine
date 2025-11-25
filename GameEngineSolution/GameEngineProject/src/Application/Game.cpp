@@ -73,8 +73,8 @@ void Game::Update(float deltaTime)
 {
     m_input.Update();
 
-    // ESC to quit
-    if (m_input.IsKeyDown(VK_ESCAPE))
+    // Quit Action
+    if (m_input.IsActionDown(Action::Quit))
     {
         PostQuitMessage(0);
     }

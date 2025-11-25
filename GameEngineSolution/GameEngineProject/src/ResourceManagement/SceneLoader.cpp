@@ -502,6 +502,15 @@ ECS::WeaponComponent SceneLoader::ParseWeapon(const JsonValue& j) {
     if (j.HasField("currentAmmo")) {
         weapon.currentAmmo = static_cast<int>(j.GetField("currentAmmo").AsNumber());
     }
+
+    if (j.HasField("maxProjectileAmmo")) {
+        weapon.maxProjectileAmmo = static_cast<int>(j.GetField("maxProjectileAmmo").AsNumber());
+        weapon.projectileAmmo = weapon.maxProjectileAmmo;
+    }
+
+    if (j.HasField("projectileAmmo")) {
+        weapon.projectileAmmo = static_cast<int>(j.GetField("projectileAmmo").AsNumber());
+    }
     
     if (j.HasField("isAutomatic")) {
         weapon.isAutomatic = j.GetField("isAutomatic").AsBool();

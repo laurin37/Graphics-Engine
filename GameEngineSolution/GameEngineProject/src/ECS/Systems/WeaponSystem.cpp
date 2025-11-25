@@ -22,8 +22,14 @@ void WeaponSystem::Update(float deltaTime) {
         // Check if this entity is controlled by player (has PlayerController)
         // Only player weapons respond to input for now
         if (m_componentManager.HasComponent<ECS::PlayerControllerComponent>(entity)) {
-            bool fireInput = m_input.IsMouseButtonDown(VK_LBUTTON);
-            bool altFireInput = m_input.IsMouseButtonDown(VK_RBUTTON);
+            bool fireInput = m_input.IsActionDown(Action::Fire);
+            bool altFireInput = m_input.IsActionDown(Action::AltFire);
+            bool reloadInput = m_input.IsActionDown(Action::Reload);
+
+            if (reloadInput) {
+                weapon.currentAmmo = weapon.maxAmmo;
+                weapon.projectileAmmo = weapon.maxProjectileAmmo;
+            }
             
             if (weapon.timeSinceLastShot >= weapon.fireRate && weapon.currentAmmo > 0) {
                 if (m_componentManager.HasComponent<ECS::TransformComponent>(entity)) {
@@ -31,10 +37,10 @@ void WeaponSystem::Update(float deltaTime) {
                     
                     if (fireInput) {
                         FireWeapon(entity, weapon, transform);
-                    } else if (altFireInput && m_projectileMesh && m_projectileMaterial) {
+                    } else if (altFireInput && m_projectileMesh && m_projectileMaterial && weapon.projectileAmmo > 0) {
                         FireProjectile(entity, transform);
                         weapon.timeSinceLastShot = 0.0f;
-                        weapon.currentAmmo--; 
+                        weapon.projectileAmmo--; 
                     }
                 }
             }

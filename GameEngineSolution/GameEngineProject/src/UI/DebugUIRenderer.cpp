@@ -122,6 +122,11 @@ void DebugUIRenderer::Render(
             snprintf(ammoBuffer, sizeof(ammoBuffer), "Ammo: %d / %d", playerWeapon->currentAmmo, playerWeapon->maxAmmo);
             uiRenderer->DrawString(font, ammoBuffer, 10.0f, yPos, 24.0f, yellow);
             yPos += lineHeight;
+
+            char grenadeBuffer[128];
+            snprintf(grenadeBuffer, sizeof(grenadeBuffer), "Grenades: %d / %d", playerWeapon->projectileAmmo, playerWeapon->maxProjectileAmmo);
+            uiRenderer->DrawString(font, grenadeBuffer, 10.0f, yPos, 24.0f, yellow);
+            yPos += lineHeight;
         }
     }
 

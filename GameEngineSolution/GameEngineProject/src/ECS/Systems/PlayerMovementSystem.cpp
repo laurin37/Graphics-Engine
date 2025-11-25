@@ -39,10 +39,10 @@ void PlayerMovementSystem::HandleMovement(Entity entity, TransformComponent& tra
     // Get movement direction from input
     XMFLOAT3 moveDir = { 0.0f, 0.0f, 0.0f };
     
-    if (input.IsKeyDown('W')) moveDir.z += 1.0f;
-    if (input.IsKeyDown('S')) moveDir.z -= 1.0f;
-    if (input.IsKeyDown('D')) moveDir.x += 1.0f;
-    if (input.IsKeyDown('A')) moveDir.x -= 1.0f;
+    if (input.IsActionDown(Action::MoveForward)) moveDir.z += 1.0f;
+    if (input.IsActionDown(Action::MoveBackward)) moveDir.z -= 1.0f;
+    if (input.IsActionDown(Action::MoveRight)) moveDir.x += 1.0f;
+    if (input.IsActionDown(Action::MoveLeft)) moveDir.x -= 1.0f;
     
     // Normalize and apply speed
     XMVECTOR moveDirVec = XMLoadFloat3(&moveDir);
@@ -72,7 +72,7 @@ void PlayerMovementSystem::HandleMovement(Entity entity, TransformComponent& tra
 void PlayerMovementSystem::HandleJump(Entity entity, PhysicsComponent& physics, 
                                      PlayerControllerComponent& controller, Input& input) {
     // Jump on Space key (only if grounded)
-    if (input.IsKeyDown(VK_SPACE) && physics.isGrounded && controller.canJump) {
+    if (input.IsActionDown(Action::Jump) && physics.isGrounded && controller.canJump) {
         physics.velocity.y = controller.jumpForce;
     }
 }

@@ -142,6 +142,8 @@ struct WeaponComponent {
     float timeSinceLastShot = 0.0f;
     int currentAmmo = 30;
     int maxAmmo = 30;
+    int projectileAmmo = 5;
+    int maxProjectileAmmo = 5;
     bool isAutomatic = false;
 };
 

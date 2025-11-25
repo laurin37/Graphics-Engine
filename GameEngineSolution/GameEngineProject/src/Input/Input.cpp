@@ -4,6 +4,17 @@ Input::Input() : m_hwnd(nullptr)
 {
     ZeroMemory(m_keys, sizeof(m_keys));
     ZeroMemory(&m_mouseState, sizeof(m_mouseState));
+
+    // Default Bindings
+    BindAction(Action::MoveForward, 'W');
+    BindAction(Action::MoveBackward, 'S');
+    BindAction(Action::MoveLeft, 'A');
+    BindAction(Action::MoveRight, 'D');
+    BindAction(Action::Jump, VK_SPACE);
+    BindAction(Action::Fire, VK_LBUTTON);
+    BindAction(Action::AltFire, VK_RBUTTON);
+    BindAction(Action::Reload, 'R');
+    BindAction(Action::Quit, VK_ESCAPE);
 }
 
 void Input::Initialize(HWND hwnd)
@@ -56,4 +67,19 @@ int Input::GetMouseDeltaX() const
 int Input::GetMouseDeltaY() const
 {
     return m_mouseState.dy;
+}
+
+void Input::BindAction(Action action, int key)
+{
+    m_actionBindings[action] = key;
+}
+
+bool Input::IsActionDown(Action action) const
+{
+    auto it = m_actionBindings.find(action);
+    if (it != m_actionBindings.end())
+    {
+        return IsKeyDown(it->second);
+    }
+    return false;
 }
