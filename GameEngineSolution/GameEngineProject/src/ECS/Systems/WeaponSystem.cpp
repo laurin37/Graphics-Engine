@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "../../../include/ECS/Systems/WeaponSystem.h"
 #include "../../../include/UI/DebugUIRenderer.h"
+#include "../../../include/Renderer/Mesh.h"
 #include <iostream>
 #include <format>
 #include <cmath>
@@ -66,7 +67,7 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
 
     DirectX::XMFLOAT3 rayDir;
     rayDir.x = cos(pitch) * sin(yaw);
-    rayDir.y = sin(pitch);
+    rayDir.y = -sin(pitch); // Invert pitch because +Pitch is looking down (negative Y)
     rayDir.z = cos(pitch) * cos(yaw);
 
     // Normalize direction
@@ -84,32 +85,56 @@ void WeaponSystem::FireWeapon(ECS::Entity entity, ECS::WeaponComponent& weapon, 
     std::cout << std::format("Ray Origin: ({:.2f}, {:.2f}, {:.2f}) Dir: ({:.2f}, {:.2f}, {:.2f})", 
         rayOrigin.x, rayOrigin.y, rayOrigin.z, rayDir.x, rayDir.y, rayDir.z) << std::endl;
 
-    auto colliderArray = componentManager.GetComponentArray<ECS::ColliderComponent>();
-    for (size_t i = 0; i < colliderArray->GetSize(); ++i) {
-        ECS::Entity targetEntity = colliderArray->GetEntityAtIndex(i);
+    // Iterate over ALL entities with Health, not just Colliders
+    auto healthArray = componentManager.GetComponentArray<ECS::HealthComponent>();
+    for (size_t i = 0; i < healthArray->GetSize(); ++i) {
+        ECS::Entity targetEntity = healthArray->GetEntityAtIndex(i);
         if (targetEntity == entity) continue; // Don't hit self
 
-        if (!componentManager.HasComponent<ECS::HealthComponent>(targetEntity)) continue;
         if (!componentManager.HasComponent<ECS::TransformComponent>(targetEntity)) continue;
-
-        auto& targetCollider = colliderArray->GetData(targetEntity);
-        if (!targetCollider.enabled) continue;
-
         auto& targetTransform = componentManager.GetComponent<ECS::TransformComponent>(targetEntity);
+
+        // Determine collision bounds
+        AABB localBounds;
+        bool hasBounds = false;
+
+        // 1. Try ColliderComponent
+        if (componentManager.HasComponent<ECS::ColliderComponent>(targetEntity)) {
+            auto& collider = componentManager.GetComponent<ECS::ColliderComponent>(targetEntity);
+            if (collider.enabled) {
+                localBounds = collider.localAABB;
+                hasBounds = true;
+            }
+        }
+
+        // 2. Try RenderComponent (Mesh bounds) if no collider
+        if (!hasBounds && componentManager.HasComponent<ECS::RenderComponent>(targetEntity)) {
+            auto& render = componentManager.GetComponent<ECS::RenderComponent>(targetEntity);
+            if (render.mesh) {
+                localBounds = render.mesh->GetLocalBounds();
+                hasBounds = true;
+            }
+        }
+
+        // 3. Fallback to default unit sphere if nothing else
+        if (!hasBounds) {
+            localBounds.center = { 0.0f, 0.0f, 0.0f };
+            localBounds.extents = { 0.5f, 0.5f, 0.5f }; // Default 1.0 size
+        }
 
         // Approximate collider as a sphere for simple raycasting
         // Use the largest extent of the AABB * scale
         float radius = std::max({
-            targetCollider.localAABB.extents.x * targetTransform.scale.x,
-            targetCollider.localAABB.extents.y * targetTransform.scale.y,
-            targetCollider.localAABB.extents.z * targetTransform.scale.z
+            localBounds.extents.x * targetTransform.scale.x,
+            localBounds.extents.y * targetTransform.scale.y,
+            localBounds.extents.z * targetTransform.scale.z
         });
 
         // Center of the sphere is transform position + rotated local center (ignoring rotation for simplicity here)
         DirectX::XMFLOAT3 center = {
-            targetTransform.position.x + targetCollider.localAABB.center.x * targetTransform.scale.x,
-            targetTransform.position.y + targetCollider.localAABB.center.y * targetTransform.scale.y,
-            targetTransform.position.z + targetCollider.localAABB.center.z * targetTransform.scale.z
+            targetTransform.position.x + localBounds.center.x * targetTransform.scale.x,
+            targetTransform.position.y + localBounds.center.y * targetTransform.scale.y,
+            targetTransform.position.z + localBounds.center.z * targetTransform.scale.z
         };
 
         float t = 0.0f;
