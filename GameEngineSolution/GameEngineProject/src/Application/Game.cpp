@@ -88,7 +88,7 @@ void Game::Update(float deltaTime)
     {
         m_renderer->GetPostProcess()->ToggleBloom();
         bool isEnabled = m_renderer->GetPostProcess()->IsBloomEnabled();
-        LOG_INFO(isEnabled ? "Bloom: ON" : "Bloom: OFF");;
+        LOG_INFO(isEnabled ? "Bloom: ON" : "Bloom: OFF");
     }
     bKeyWasPressed = bKeyPressed;
 
@@ -101,19 +101,6 @@ void Game::Update(float deltaTime)
         LOG_INFO(m_showDebugCollision ? "Debug Collision: ON" : "Debug Collision: OFF");
     }
     hKeyWasPressed = hKeyPressed;
-
-    // Toggle ECS with E key
-    static bool eKeyWasPressed = false;
-    bool eKeyPressed = m_input.IsKeyDown('E');
-    if (eKeyPressed && !eKeyWasPressed)
-    {
-        if (m_scene) {
-            m_scene->ToggleECS();
-            bool isUsingECS = m_scene->IsUsingECS();
-            LOG_INFO(isUsingECS ? "Switched to ECS" : "Switched to GameObject");
-        }
-    }
-    eKeyWasPressed = eKeyPressed;
 
     if (m_scene)
     {

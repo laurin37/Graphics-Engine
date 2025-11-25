@@ -1,0 +1,54 @@
+{
+  "entities": [
+    {
+      "name": "Floor",
+      "components": {
+        "transform": {
+          "position": [0.0, -0.05, 0.0],
+          "scale": [100.0, 0.1, 100.0]
+        },
+        "render": {
+          "mesh": "cube",
+          "material": "matFloor"
+        },
+        "physics": {
+          "useGravity": false,
+          "checkCollisions": false
+        },
+        "collider": {
+          "autoGenerate": true
+        }
+      }
+    },
+    {
+      "name": "Player",
+      "components": {
+        "transform": {
+          "position": [0.0, 1.0, -5.0],
+          "scale": [0.4, 1.8, 0.4]
+        },
+        "render": {
+          "mesh": "cylinder",
+          "material": "matPillar"
+        },
+        "physics": {
+          "useGravity": true,
+          "mass": 1.0,
+          "checkCollisions": true,
+          "gravityAcceleration": -15.0,
+          "maxFallSpeed": -15.0
+        },
+        "collider": {
+          "center": [0.0, 0.0, 0.0],
+          "extents": [0.4, 0.5, 0.4]
+        },
+        "playerController": {
+          "moveSpeed": 5.0,
+          "jumpForce": 7.0,
+          "mouseSensitivity": 0.002,
+          "cameraHeight": 0.7
+        }
+      }
+    }
+  ]
+}

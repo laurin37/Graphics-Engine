@@ -21,11 +21,12 @@ void Gun::Shoot(Scene* sceneInstance, const DirectX::XMFLOAT3& position, const D
 {
     if (m_lastShotTime <= 0.0f)
     {
+        // TODO: Implement bullet spawning in ECS
         // Spawn bullet via Scene
-        if (sceneInstance)
-        {
-            sceneInstance->SpawnBullet(position, direction, m_bulletSpeed, m_damage);
-            m_lastShotTime = m_fireRate;
-        }
+        // if (sceneInstance)
+        // {
+        //     sceneInstance->SpawnBullet(position, direction, m_bulletSpeed, m_damage);
+        //     m_lastShotTime = m_fireRate;
+        // }
     }
 }
