@@ -62,9 +62,13 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 # 8. AUTOMATIC ASSET COPYING
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+# Create a custom target to ensure assets are copied on every build
+add_custom_target(CopyAssets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/GameEngineSolution/GameEngineProject/Assets"
     "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Assets"
     COMMENT "Copying Assets to Output Directory..."
 )
+
+# Make the main project depend on CopyAssets
+add_dependencies(${PROJECT_NAME} CopyAssets)

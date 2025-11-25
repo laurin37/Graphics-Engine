@@ -67,10 +67,10 @@
                     ]
                 },
                 "playerController": {
-                    "moveSpeed": 5.0,
-                    "jumpForce": 7.0,
-                    "mouseSensitivity": 0.002,
-                    "cameraHeight": 0.7
+                    "moveSpeed": 10.0,
+                    "jumpForce": 20.0,
+                    "mouseSensitivity": 0.001,
+                    "cameraHeight": 1.7
                 },
                 "camera": {
                     "fov": 70.0,
@@ -80,7 +80,7 @@
                     "isActive": true,
                     "offset": [
                         0.0,
-                        0.7,
+                        1.7,
                         0.0
                     ]
                 }

@@ -57,13 +57,34 @@ void DebugUIRenderer::Render(
     std::vector<ECS::Entity> players = componentManager.GetEntitiesWithPlayerController();
     if (!players.empty()) {
         ECS::TransformComponent* playerTrans = componentManager.GetTransform(players[0]);
+        ECS::PlayerControllerComponent* playerCtrl = componentManager.GetPlayerController(players[0]);
         ECS::PhysicsComponent* playerPhys = componentManager.GetPhysics(players[0]);
+        ECS::ColliderComponent* playerCol = componentManager.GetCollider(players[0]);
 
         if (playerTrans) {
+            float feetY = playerTrans->position.y;
+            float headY = playerTrans->position.y;
+
+            // Calculate bounds if collider exists
+            if (playerCol) {
+                float scaledExtentsY = playerCol->localAABB.extents.y * playerTrans->scale.y;
+                float scaledCenterY = playerCol->localAABB.center.y * playerTrans->scale.y;
+                feetY = playerTrans->position.y + scaledCenterY - scaledExtentsY;
+                headY = playerTrans->position.y + scaledCenterY + scaledExtentsY;
+            }
+
+            // Feet Position
             char playerPosBuffer[128];
-            snprintf(playerPosBuffer, sizeof(playerPosBuffer), "Player Pos: (%.2f, %.2f, %.2f)",
-                playerTrans->position.x, playerTrans->position.y, playerTrans->position.z);
+            snprintf(playerPosBuffer, sizeof(playerPosBuffer), "Player Feet: (%.2f, %.2f, %.2f)",
+                playerTrans->position.x, feetY, playerTrans->position.z);
             uiRenderer->DrawString(font, playerPosBuffer, 10.0f, yPos, 20.0f, green);
+            yPos += lineHeight;
+
+            // Head Position (Top of mesh/collider)
+            char headPosBuffer[128];
+            snprintf(headPosBuffer, sizeof(headPosBuffer), "Player Head: (%.2f, %.2f, %.2f)",
+                playerTrans->position.x, headY, playerTrans->position.z);
+            uiRenderer->DrawString(font, headPosBuffer, 10.0f, yPos, 20.0f, green);
             yPos += lineHeight;
         }
 
@@ -73,6 +94,25 @@ void DebugUIRenderer::Render(
                 playerPhys->velocity.x, playerPhys->velocity.y, playerPhys->velocity.z,
                 playerPhys->isGrounded ? "YES" : "NO");
             uiRenderer->DrawString(font, playerVelBuffer, 10.0f, yPos, 18.0f, yellow);
+            yPos += lineHeight;
+        }
+    }
+
+    // Show active camera position
+    ECS::Entity activeCamera = componentManager.GetActiveCamera();
+    if (activeCamera != ECS::NULL_ENTITY) {
+        ECS::TransformComponent* camTrans = componentManager.GetTransform(activeCamera);
+        ECS::CameraComponent* camComp = componentManager.GetCamera(activeCamera);
+        
+        if (camTrans && camComp) {
+            // Calculate actual camera position (Transform + Offset)
+            float camX = camTrans->position.x + camComp->positionOffset.x;
+            float camY = camTrans->position.y + camComp->positionOffset.y;
+            float camZ = camTrans->position.z + camComp->positionOffset.z;
+
+            char camPosBuffer[128];
+            snprintf(camPosBuffer, sizeof(camPosBuffer), "Camera Pos: (%.2f, %.2f, %.2f)", camX, camY, camZ);
+            uiRenderer->DrawString(font, camPosBuffer, 10.0f, yPos, 20.0f, white);
             yPos += lineHeight;
         }
     }
