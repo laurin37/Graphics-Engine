@@ -55,14 +55,13 @@ void DebugUIRenderer::Render(
     yPos += lineHeight;
 
     // Show player information if exists
-    std::vector<ECS::Entity> players = componentManager.GetEntitiesWithPlayerController();
-    if (!players.empty()) {
-        ECS::TransformComponent* playerTrans = componentManager.GetTransform(players[0]);
-        ECS::RenderComponent* playerRender = componentManager.GetRender(players[0]);
-        ECS::PhysicsComponent* playerPhys = componentManager.GetPhysics(players[0]);
-        ECS::ColliderComponent* playerCol = componentManager.GetCollider(players[0]);
-        ECS::PlayerControllerComponent* playerCtrl = componentManager.GetPlayerController(players[0]);
-        ECS::CameraComponent* playerCam = componentManager.GetCamera(players[0]);
+    auto playerArray = componentManager.GetComponentArray<ECS::PlayerControllerComponent>();
+    if (playerArray && playerArray->GetSize() > 0) {
+        ECS::Entity playerEntity = playerArray->GetEntityAtIndex(0);
+        
+        ECS::TransformComponent* playerTrans = componentManager.GetComponentPtr<ECS::TransformComponent>(playerEntity);
+        ECS::PhysicsComponent* playerPhys = componentManager.GetComponentPtr<ECS::PhysicsComponent>(playerEntity);
+        ECS::ColliderComponent* playerCol = componentManager.GetComponentPtr<ECS::ColliderComponent>(playerEntity);
 
         if (playerTrans && playerCol) {
             float feetY = playerTrans->position.y - playerTrans->scale.y;
@@ -117,8 +116,8 @@ void DebugUIRenderer::Render(
     // Show active camera position
     ECS::Entity activeCamera = componentManager.GetActiveCamera();
     if (activeCamera != ECS::NULL_ENTITY) {
-        ECS::TransformComponent* camTrans = componentManager.GetTransform(activeCamera);
-        ECS::CameraComponent* camComp = componentManager.GetCamera(activeCamera);
+        ECS::TransformComponent* camTrans = componentManager.GetComponentPtr<ECS::TransformComponent>(activeCamera);
+        ECS::CameraComponent* camComp = componentManager.GetComponentPtr<ECS::CameraComponent>(activeCamera);
         
         if (camTrans && camComp) {
             // Calculate actual camera position (Transform + Offset)

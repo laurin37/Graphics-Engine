@@ -11,29 +11,32 @@ void PhysicsSystem::Update(ComponentManager& cm, float deltaTime) {
     if (deltaTime < MIN_DELTA_TIME) deltaTime = MIN_DELTA_TIME;
     if (deltaTime > MAX_DELTA_TIME) deltaTime = MAX_DELTA_TIME;
     
-    // Get all entities with both Physics and Transform
-    std::vector<Entity> entities = cm.GetEntitiesWithPhysicsAndTransform();
+    // Iterate over all physics components
+    auto physicsArray = cm.GetComponentArray<PhysicsComponent>();
+    auto& physicsVec = physicsArray->GetComponentArray();
     
-    for (Entity entity : entities) {
-        PhysicsComponent* physics = cm.GetPhysics(entity);
-        TransformComponent* transform = cm.GetTransform(entity);
+    for (size_t i = 0; i < physicsVec.size(); ++i) {
+        Entity entity = physicsArray->GetEntityAtIndex(i);
+        PhysicsComponent& physics = physicsVec[i];
         
-        if (!physics || !transform) continue;
+        // We need a transform to do anything
+        if (!cm.HasComponent<TransformComponent>(entity)) continue;
+        TransformComponent& transform = cm.GetComponent<TransformComponent>(entity);
         
         // Apply physics forces
-        if (physics->useGravity) {
-            ApplyGravity(*physics, deltaTime);
+        if (physics.useGravity) {
+            ApplyGravity(physics, deltaTime);
         }
         
-        ApplyDrag(*physics, deltaTime);
-        ClampVelocity(*physics);
+        ApplyDrag(physics, deltaTime);
+        ClampVelocity(physics);
         
         // Integrate velocity into position
-        IntegrateVelocity(*transform, *physics, deltaTime);
+        IntegrateVelocity(transform, physics, deltaTime);
         
         // Simple ground collision
-        if (physics->checkCollisions) {
-            CheckGroundCollision(entity, *transform, *physics, cm);
+        if (physics.checkCollisions) {
+            CheckGroundCollision(entity, transform, physics, cm);
         }
     }
 }
@@ -64,10 +67,10 @@ void PhysicsSystem::IntegrateVelocity(TransformComponent& transform, PhysicsComp
 
 void PhysicsSystem::CheckGroundCollision(Entity entity, TransformComponent& transform, PhysicsComponent& physics, ComponentManager& cm) {
     // Full collision detection with other entities
-    if (!cm.HasCollider(entity)) return;
+    if (!cm.HasComponent<ColliderComponent>(entity)) return;
     
-    ColliderComponent* myCollider = cm.GetCollider(entity);
-    if (!myCollider || !myCollider->enabled) return;
+    ColliderComponent& myCollider = cm.GetComponent<ColliderComponent>(entity);
+    if (!myCollider.enabled) return;
     
     // Reset grounded state (will be set to true if we hit something below us)
     physics.isGrounded = false;
@@ -75,12 +78,12 @@ void PhysicsSystem::CheckGroundCollision(Entity entity, TransformComponent& tran
     // Calculate my world-space AABB
     DirectX::XMFLOAT3 myMin, myMax;
     DirectX::XMFLOAT3 myExtents = {
-        myCollider->localAABB.extents.x * transform.scale.x,
-        myCollider->localAABB.extents.y * transform.scale.y,
-        myCollider->localAABB.extents.z * transform.scale.z
+        myCollider.localAABB.extents.x * transform.scale.x,
+        myCollider.localAABB.extents.y * transform.scale.y,
+        myCollider.localAABB.extents.z * transform.scale.z
     };
     
-    float colliderCenterOffsetY = myCollider->localAABB.center.y * transform.scale.y;
+    float colliderCenterOffsetY = myCollider.localAABB.center.y * transform.scale.y;
     float colliderCenterY = transform.position.y + colliderCenterOffsetY;
     
     myMin.x = transform.position.x - myExtents.x;
@@ -91,33 +94,36 @@ void PhysicsSystem::CheckGroundCollision(Entity entity, TransformComponent& tran
     myMax.z = transform.position.z + myExtents.z;
     
     // Check against all other entities with colliders
-    std::vector<Entity> allEntities = cm.GetEntitiesWithCollider();
+    auto colliderArray = cm.GetComponentArray<ColliderComponent>();
+    auto& colliderVec = colliderArray->GetComponentArray();
     
-    for (Entity other : allEntities) {
+    for (size_t i = 0; i < colliderVec.size(); ++i) {
+        Entity other = colliderArray->GetEntityAtIndex(i);
         if (other == entity) continue; // Skip self
         
-        ColliderComponent* otherCollider = cm.GetCollider(other);
-        TransformComponent* otherTransform = cm.GetTransform(other);
+        ColliderComponent& otherCollider = colliderVec[i];
+        if (!otherCollider.enabled) continue;
         
-        if (!otherCollider || !otherCollider->enabled || !otherTransform) continue;
+        if (!cm.HasComponent<TransformComponent>(other)) continue;
+        TransformComponent& otherTransform = cm.GetComponent<TransformComponent>(other);
         
         // Calculate other's world-space AABB
         DirectX::XMFLOAT3 otherExtents = {
-            otherCollider->localAABB.extents.x * otherTransform->scale.x,
-            otherCollider->localAABB.extents.y * otherTransform->scale.y,
-            otherCollider->localAABB.extents.z * otherTransform->scale.z
+            otherCollider.localAABB.extents.x * otherTransform.scale.x,
+            otherCollider.localAABB.extents.y * otherTransform.scale.y,
+            otherCollider.localAABB.extents.z * otherTransform.scale.z
         };
         
-        float otherCenterOffsetY = otherCollider->localAABB.center.y * otherTransform->scale.y;
-        float otherColliderCenterY = otherTransform->position.y + otherCenterOffsetY;
+        float otherCenterOffsetY = otherCollider.localAABB.center.y * otherTransform.scale.y;
+        float otherColliderCenterY = otherTransform.position.y + otherCenterOffsetY;
         
         DirectX::XMFLOAT3 otherMin, otherMax;
-        otherMin.x = otherTransform->position.x - otherExtents.x;
+        otherMin.x = otherTransform.position.x - otherExtents.x;
         otherMin.y = otherColliderCenterY - otherExtents.y;
-        otherMin.z = otherTransform->position.z - otherExtents.z;
-        otherMax.x = otherTransform->position.x + otherExtents.x;
+        otherMin.z = otherTransform.position.z - otherExtents.z;
+        otherMax.x = otherTransform.position.x + otherExtents.x;
         otherMax.y = otherColliderCenterY + otherExtents.y;
-        otherMax.z = otherTransform->position.z + otherExtents.z;
+        otherMax.z = otherTransform.position.z + otherExtents.z;
         
         // AABB intersection test
         bool intersects = 
@@ -134,7 +140,7 @@ void PhysicsSystem::CheckGroundCollision(Entity entity, TransformComponent& tran
             // Resolve on axis with smallest penetration
             if (penetrationX < penetrationY && penetrationX < penetrationZ) {
                 // Resolve on X axis
-                if (transform.position.x < otherTransform->position.x) {
+                if (transform.position.x < otherTransform.position.x) {
                     transform.position.x -= penetrationX;
                 } else {
                     transform.position.x += penetrationX;
@@ -154,7 +160,7 @@ void PhysicsSystem::CheckGroundCollision(Entity entity, TransformComponent& tran
                 }
             } else {
                 // Resolve on Z axis
-                if (transform.position.z < otherTransform->position.z) {
+                if (transform.position.z < otherTransform.position.z) {
                     transform.position.z -= penetrationZ;
                 } else {
                     transform.position.z += penetrationZ;

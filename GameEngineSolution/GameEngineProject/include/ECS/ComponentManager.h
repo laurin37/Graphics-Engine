@@ -5,13 +5,109 @@
 #include <unordered_map>
 #include <vector>
 #include <optional>
+#include <typeindex>
+#include <memory>
+#include <stdexcept>
+#include <cassert>
 
 namespace ECS {
 
 // ========================================
+// IComponentArray
+// Interface for generic component arrays
+// ========================================
+class IComponentArray {
+public:
+    virtual ~IComponentArray() = default;
+    virtual void EntityDestroyed(Entity entity) = 0;
+};
+
+// ========================================
+// ComponentArray<T>
+// Generic sparse set storage for components
+// ========================================
+template<typename T>
+class ComponentArray : public IComponentArray {
+public:
+    void InsertData(Entity entity, T component) {
+        if (m_entityToIndex.find(entity) != m_entityToIndex.end()) {
+            // Component already exists, just update it
+            m_componentArray[m_entityToIndex[entity]] = component;
+            return;
+        }
+
+        // Add new component
+        size_t newIndex = m_size;
+        m_entityToIndex[entity] = newIndex;
+        m_indexToEntity[newIndex] = entity;
+        m_componentArray.push_back(component);
+        m_size++;
+    }
+
+    void RemoveData(Entity entity) {
+        if (m_entityToIndex.find(entity) == m_entityToIndex.end()) {
+            return; // Entity doesn't have this component
+        }
+
+        // Copy last element into deleted element's place to maintain density
+        size_t indexOfRemovedEntity = m_entityToIndex[entity];
+        size_t indexOfLastElement = m_size - 1;
+        
+        m_componentArray[indexOfRemovedEntity] = m_componentArray[indexOfLastElement];
+
+        // Update map to point to moved spot
+        Entity entityOfLastElement = m_indexToEntity[indexOfLastElement];
+        m_entityToIndex[entityOfLastElement] = indexOfRemovedEntity;
+        m_indexToEntity[indexOfRemovedEntity] = entityOfLastElement;
+
+        m_entityToIndex.erase(entity);
+        m_indexToEntity.erase(indexOfLastElement);
+        m_componentArray.pop_back();
+
+        m_size--;
+    }
+
+    T& GetData(Entity entity) {
+        if (m_entityToIndex.find(entity) == m_entityToIndex.end()) {
+            throw std::runtime_error("Retrieving non-existent component.");
+        }
+        return m_componentArray[m_entityToIndex[entity]];
+    }
+
+    bool HasData(Entity entity) const {
+        return m_entityToIndex.find(entity) != m_entityToIndex.end();
+    }
+
+    void EntityDestroyed(Entity entity) override {
+        if (m_entityToIndex.find(entity) != m_entityToIndex.end()) {
+            RemoveData(entity);
+        }
+    }
+
+    // Direct access for systems
+    std::vector<T>& GetComponentArray() {
+        return m_componentArray;
+    }
+    
+    // Helper to get entity for a specific index (useful when iterating the vector directly)
+    Entity GetEntityAtIndex(size_t index) {
+        return m_indexToEntity[index];
+    }
+
+    size_t GetSize() const {
+        return m_size;
+    }
+
+private:
+    std::vector<T> m_componentArray;
+    std::unordered_map<Entity, size_t> m_entityToIndex;
+    std::unordered_map<size_t, Entity> m_indexToEntity;
+    size_t m_size = 0;
+};
+
+// ========================================
 // ComponentManager
 // Central registry for all components
-// Uses sparse set for O(1) access and cache-friendly iteration
 // ========================================
 class ComponentManager {
 public:
@@ -23,178 +119,95 @@ public:
     // ========================================
     Entity CreateEntity();
     void DestroyEntity(Entity entity);
-    
-    // ========================================
-    // Component Management - Transform
-    // ========================================
-    void AddTransform(Entity entity, const TransformComponent& component);
-    void RemoveTransform(Entity entity);
-    TransformComponent* GetTransform(Entity entity);
-    bool HasTransform(Entity entity) const;
-    
-    // ========================================
-    // Component Management - Physics
-    // ========================================
-    void AddPhysics(Entity entity, const PhysicsComponent& component);
-    void RemovePhysics(Entity entity);
-    PhysicsComponent* GetPhysics(Entity entity);
-    bool HasPhysics(Entity entity) const;
-    
-    // ========================================
-    // Component Management - Render
-    // ========================================
-    void AddRender(Entity entity, const RenderComponent& component);
-    void RemoveRender(Entity entity);
-    RenderComponent* GetRender(Entity entity);
-    bool HasRender(Entity entity) const;
-    
-    // ========================================
-    // Component Management - Collider
-    // ========================================
-    void AddCollider(Entity entity, const ColliderComponent& component);
-    void RemoveCollider(Entity entity);
-    ColliderComponent* GetCollider(Entity entity);
-    bool HasCollider(Entity entity) const;
-
-    // ========================================
-    // Component Management - Light
-    // ========================================
-    void AddLight(Entity entity, const LightComponent& component);
-    void RemoveLight(Entity entity);
-    LightComponent* GetLight(Entity entity);
-    bool HasLight(Entity entity) const;
-
-    // ========================================
-    // Component Management - Rotate
-    // ========================================
-    void AddRotate(Entity entity, const RotateComponent& component);
-    void RemoveRotate(Entity entity);
-    RotateComponent* GetRotate(Entity entity);
-    bool HasRotate(Entity entity) const;
-
-    // ========================================
-    // Component Management - Orbit
-    // ========================================
-    void AddOrbit(Entity entity, const OrbitComponent& component);
-    void RemoveOrbit(Entity entity);
-    OrbitComponent* GetOrbit(Entity entity);
-    bool HasOrbit(Entity entity) const;
-    
-    // ========================================
-    // Component Management - PlayerController
-    // ========================================
-    void AddPlayerController(Entity entity, const PlayerControllerComponent& component);
-    void RemovePlayerController(Entity entity);
-    PlayerControllerComponent* GetPlayerController(Entity entity);
-    bool HasPlayerController(Entity entity) const;
-    
-    // ========================================
-    // Component Management - Camera
-    // ========================================
-    void AddCamera(Entity entity, const CameraComponent& component);
-    void RemoveCamera(Entity entity);
-    CameraComponent* GetCamera(Entity entity);
-    bool HasCamera(Entity entity) const;
-    Entity GetActiveCamera(); // Helper to find the active camera
-    
-    // ========================================
-    // Queries (for systems to iterate entities)
-    // ========================================
-    std::vector<Entity> GetEntitiesWithTransform() const;
-    std::vector<Entity> GetEntitiesWithPhysics() const;
-    std::vector<Entity> GetEntitiesWithRender() const;
-    std::vector<Entity> GetEntitiesWithCollider() const;
-    std::vector<Entity> GetEntitiesWithLight() const;
-    std::vector<Entity> GetEntitiesWithRotate() const;
-    std::vector<Entity> GetEntitiesWithOrbit() const;
-    std::vector<Entity> GetEntitiesWithPlayerController() const;
-    std::vector<Entity> GetEntitiesWithCamera() const;
-    
-    // Get entities with multiple components
-    std::vector<Entity> GetEntitiesWithPlayerControllerAndTransform() const;
-    std::vector<Entity> GetEntitiesWithPhysicsAndTransform() const;
-    std::vector<Entity> GetEntitiesWithRenderAndTransform() const;
-    std::vector<Entity> GetEntitiesWithRotateAndTransform() const;
-    std::vector<Entity> GetEntitiesWithOrbitAndTransform() const;
-    
-    // ========================================
-    // Direct Component Array Access (for fast iteration)
-    // ========================================
-    std::vector<TransformComponent>& GetAllTransforms() { return m_transforms; }
-    std::vector<PhysicsComponent>& GetAllPhysics() { return m_physics; }
-    std::vector<RenderComponent>& GetAllRenders() { return m_renders; }
-    std::vector<ColliderComponent>& GetAllColliders() { return m_colliders; }
-    std::vector<LightComponent>& GetAllLights() { return m_lights; }
-    std::vector<RotateComponent>& GetAllRotates() { return m_rotates; }
-    std::vector<OrbitComponent>& GetAllOrbits() { return m_orbits; }
-    std::vector<PlayerControllerComponent>& GetAllPlayerControllers() { return m_playerControllers; }
-    
-    // ========================================
-    // Stats
-    // ========================================
     size_t GetEntityCount() const { return m_entities.size(); }
-    size_t GetTransformCount() const { return m_transforms.size(); }
-    size_t GetPhysicsCount() const { return m_physics.size(); }
-    size_t GetRenderCount() const { return m_renders.size(); }
+
+    // ========================================
+    // Generic Component Management
+    // ========================================
     
+    template<typename T>
+    void AddComponent(Entity entity, T component) {
+        GetComponentArray<T>()->InsertData(entity, component);
+    }
+
+    template<typename T>
+    void RemoveComponent(Entity entity) {
+        GetComponentArray<T>()->RemoveData(entity);
+    }
+
+    template<typename T>
+    T& GetComponent(Entity entity) {
+        return GetComponentArray<T>()->GetData(entity);
+    }
+    
+    template<typename T>
+    T* GetComponentPtr(Entity entity) {
+        auto array = GetComponentArray<T>();
+        if (array->HasData(entity)) {
+            return &array->GetData(entity);
+        }
+        return nullptr;
+    }
+
+    template<typename T>
+    bool HasComponent(Entity entity) {
+        return GetComponentArray<T>()->HasData(entity);
+    }
+    
+    // Helper to get the raw array for systems
+    template<typename T>
+    std::shared_ptr<ComponentArray<T>> GetComponentArray() {
+        std::type_index typeName = std::type_index(typeid(T));
+
+        if (m_componentArrays.find(typeName) == m_componentArrays.end()) {
+            // Register component type if not exists
+            m_componentArrays[typeName] = std::make_shared<ComponentArray<T>>();
+        }
+
+        return std::static_pointer_cast<ComponentArray<T>>(m_componentArrays[typeName]);
+    }
+    
+    // ========================================
+    // Legacy Helpers (Optional - can be removed if we update all call sites)
+    // ========================================
+    Entity GetActiveCamera() {
+        // This is a bit inefficient now, but acceptable for a single active camera lookup
+        auto cameraArray = GetComponentArray<CameraComponent>();
+        for (auto& cam : cameraArray->GetComponentArray()) {
+            if (cam.isActive) {
+                // We need to find the entity for this component. 
+                // This is where the reverse map in ComponentArray is needed, but we don't have direct access to it from the value.
+                // We have to iterate. Or we can just iterate the sparse set.
+                // Let's iterate the sparse set via the array and use the index.
+                // Wait, ComponentArray stores data densely.
+                // We need to find the entity ID.
+                // Let's add a helper to ComponentArray to get Entity from index.
+                // Actually, for now, let's just return NULL_ENTITY if we can't easily find it, 
+                // OR we can iterate all entities and check HasComponent<CameraComponent>.
+                // Better: The CameraSystem should track the active camera.
+                // For now, let's just leave this unimplemented or do a slow search if needed.
+                // But wait, the original implementation had this.
+                // Let's implement a slow search for now to maintain compatibility.
+                // Actually, I added GetEntityAtIndex to ComponentArray.
+                // But we can't easily map from `cam` reference to index without pointer arithmetic.
+                // Let's just iterate the array by index.
+                size_t index = &cam - &cameraArray->GetComponentArray()[0];
+                return cameraArray->GetEntityAtIndex(index);
+            }
+        }
+        return NULL_ENTITY;
+    }
+
 private:
     // Entity ID generator
     EntityIDGenerator m_idGenerator;
     
-    // Set of all active entities
+    // Set of all active entities (optional, mainly for DestroyEntity validation)
+    // We can keep this to track valid entities.
     std::vector<Entity> m_entities;
-    
-    // ========================================
-    // SPARSE SET STORAGE
-    // Dense arrays: contiguous component data (cache-friendly iteration)
-    // Sparse maps: entity -> index lookup (O(1) access)
-    // Reverse maps: index -> entity for queries
-    // ========================================
-    
-    // Transform components
-    std::vector<TransformComponent> m_transforms;
-    std::unordered_map<Entity, size_t> m_entityToTransform;
-    std::unordered_map<size_t, Entity> m_transformToEntity;
-    
-    // Physics components
-    std::vector<PhysicsComponent> m_physics;
-    std::unordered_map<Entity, size_t> m_entityToPhysics;
-    std::unordered_map<size_t, Entity> m_physicsToEntity;
-    
-    // Render components
-    std::vector<RenderComponent> m_renders;
-    std::unordered_map<Entity, size_t> m_entityToRender;
-    std::unordered_map<size_t, Entity> m_renderToEntity;
-    
-    // Collider components
-    std::vector<ColliderComponent> m_colliders;
-    std::unordered_map<Entity, size_t> m_entityToCollider;
-    std::unordered_map<size_t, Entity> m_colliderToEntity;
 
-    // Light components
-    std::vector<LightComponent> m_lights;
-    std::unordered_map<Entity, size_t> m_entityToLight;
-    std::unordered_map<size_t, Entity> m_lightToEntity;
-
-    // Rotate components
-    std::vector<RotateComponent> m_rotates;
-    std::unordered_map<Entity, size_t> m_entityToRotate;
-    std::unordered_map<size_t, Entity> m_rotateToEntity;
-
-    // Orbit components
-    std::vector<OrbitComponent> m_orbits;
-    std::unordered_map<Entity, size_t> m_entityToOrbit;
-    std::unordered_map<size_t, Entity> m_orbitToEntity;
-    
-    // PlayerController components
-    std::vector<PlayerControllerComponent> m_playerControllers;
-    std::unordered_map<Entity, size_t> m_entityToPlayerController;
-    std::unordered_map<size_t, Entity> m_playerControllerToEntity;
-    
-    // Camera components
-    std::vector<CameraComponent> m_cameras;
-    std::unordered_map<Entity, size_t> m_entityToCamera;
-    std::unordered_map<size_t, Entity> m_cameraToEntity;
+    // Map from type string pointer to a component array
+    std::unordered_map<std::type_index, std::shared_ptr<IComponentArray>> m_componentArrays;
 };
 
 } // namespace ECS

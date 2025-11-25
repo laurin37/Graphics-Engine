@@ -7,25 +7,29 @@ using namespace DirectX;
 namespace ECS {
 
 void PlayerMovementSystem::Update(ComponentManager& cm, Input& input, float deltaTime) {
-    // Get all player entities (entities with PlayerController + Transform)
-    std::vector<Entity> players = cm.GetEntitiesWithPlayerControllerAndTransform();
+    // Iterate over all player controller components
+    auto controllerArray = cm.GetComponentArray<PlayerControllerComponent>();
+    auto& controllerVec = controllerArray->GetComponentArray();
     
-    for (Entity player : players) {
-        PlayerControllerComponent* controller = cm.GetPlayerController(player);
-        TransformComponent* transform = cm.GetTransform(player);
-        PhysicsComponent* physics = cm.GetPhysics(player);
+    for (size_t i = 0; i < controllerVec.size(); ++i) {
+        Entity entity = controllerArray->GetEntityAtIndex(i);
+        PlayerControllerComponent& controller = controllerVec[i];
         
-        if (!controller || !transform) continue;
+        if (!cm.HasComponent<TransformComponent>(entity)) continue;
+        TransformComponent& transform = cm.GetComponent<TransformComponent>(entity);
+        
+        // Optional physics
+        PhysicsComponent* physics = cm.GetComponentPtr<PhysicsComponent>(entity);
         
         // Handle mouse look and camera
-        HandleMouseLook(player, *transform, *controller, input, deltaTime);
+        HandleMouseLook(entity, transform, controller, input, deltaTime);
         
         // Handle movement (WASD)
         if (physics) {
-            HandleMovement(player, *transform, *physics, *controller, input, deltaTime);
+            HandleMovement(entity, transform, *physics, controller, input, deltaTime);
             
             // Handle jump (Space)
-            HandleJump(player, *physics, *controller, input);
+            HandleJump(entity, *physics, controller, input);
         }
     }
 }

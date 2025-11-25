@@ -93,56 +93,56 @@ void SceneLoader::LoadScene(
         // Parse Transform
         if (components.HasField("transform")) {
             ECS::TransformComponent transform = ParseTransform(components.GetField("transform"));
-            componentManager.AddTransform(entity, transform);
+            componentManager.AddComponent<ECS::TransformComponent>(entity, transform);
         }
         
         // Parse Render (must come before collider for auto-generation)
         if (components.HasField("render")) {
             ECS::RenderComponent render = ParseRender(components.GetField("render"), meshLookup, materialLookup);
-            componentManager.AddRender(entity, render);
+            componentManager.AddComponent<ECS::RenderComponent>(entity, render);
             entityMesh = render.mesh;
         }
         
         // Parse Physics
         if (components.HasField("physics")) {
             ECS::PhysicsComponent physics = ParsePhysics(components.GetField("physics"));
-            componentManager.AddPhysics(entity, physics);
+            componentManager.AddComponent<ECS::PhysicsComponent>(entity, physics);
         }
         
         // Parse Collider
         if (components.HasField("collider")) {
             ECS::ColliderComponent collider = ParseCollider(components.GetField("collider"), entityMesh);
-            componentManager.AddCollider(entity, collider);
+            componentManager.AddComponent<ECS::ColliderComponent>(entity, collider);
         }
         
         // Parse Light
         if (components.HasField("light")) {
             ECS::LightComponent light = ParseLight(components.GetField("light"));
-            componentManager.AddLight(entity, light);
+            componentManager.AddComponent<ECS::LightComponent>(entity, light);
         }
         
         // Parse Rotate
         if (components.HasField("rotate")) {
             ECS::RotateComponent rotate = ParseRotate(components.GetField("rotate"));
-            componentManager.AddRotate(entity, rotate);
+            componentManager.AddComponent<ECS::RotateComponent>(entity, rotate);
         }
         
         // Parse Orbit
         if (components.HasField("orbit")) {
             ECS::OrbitComponent orbit = ParseOrbit(components.GetField("orbit"));
-            componentManager.AddOrbit(entity, orbit);
+            componentManager.AddComponent<ECS::OrbitComponent>(entity, orbit);
         }
         
         // Parse PlayerController
         if (components.HasField("playerController")) {
             ECS::PlayerControllerComponent controller = ParsePlayerController(components.GetField("playerController"));
-            componentManager.AddPlayerController(entity, controller);
+            componentManager.AddComponent<ECS::PlayerControllerComponent>(entity, controller);
         }
 
         // Parse Camera
         if (components.HasField("camera")) {
             ECS::CameraComponent camera = ParseCamera(components.GetField("camera"));
-            componentManager.AddCamera(entity, camera);
+            componentManager.AddComponent<ECS::CameraComponent>(entity, camera);
         }
     }
 }

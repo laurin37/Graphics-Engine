@@ -10,19 +10,23 @@ namespace ECS {
 void RenderSystem::Render(ComponentManager& cm, Renderer* renderer, Camera& camera) {
     if (!renderer) return;
     
-    // Get all entities with both Render and Transform components
-    std::vector<Entity> entities = cm.GetEntitiesWithRenderAndTransform();
+    // Iterate over all render components
+    auto renderArray = cm.GetComponentArray<RenderComponent>();
+    auto& renderVec = renderArray->GetComponentArray();
     
-    for (Entity entity : entities) {
-        RenderComponent* render = cm.GetRender(entity);
-        TransformComponent* transform = cm.GetTransform(entity);
+    for (size_t i = 0; i < renderVec.size(); ++i) {
+        Entity entity = renderArray->GetEntityAtIndex(i);
+        RenderComponent& render = renderVec[i];
         
-        if (!render || !transform || !render->mesh || !render->material) continue;
+        if (!render.mesh || !render.material) continue;
+        
+        if (!cm.HasComponent<TransformComponent>(entity)) continue;
+        TransformComponent& transform = cm.GetComponent<TransformComponent>(entity);
         
         // Build world matrix from transform
-        XMMATRIX scaleMatrix = XMMatrixScaling(transform->scale.x, transform->scale.y, transform->scale.z);
-        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(transform->rotation.x, transform->rotation.y, transform->rotation.z);
-        XMMATRIX translationMatrix = XMMatrixTranslation(transform->position.x, transform->position.y, transform->position.z);
+        XMMATRIX scaleMatrix = XMMatrixScaling(transform.scale.x, transform.scale.y, transform.scale.z);
+        XMMATRIX rotationMatrix = XMMatrixRotationRollPitchYaw(transform.rotation.x, transform.rotation.y, transform.rotation.z);
+        XMMATRIX translationMatrix = XMMatrixTranslation(transform.position.x, transform.position.y, transform.position.z);
         
         XMMATRIX worldMatrix = scaleMatrix * rotationMatrix * translationMatrix;
         
@@ -42,24 +46,29 @@ void RenderSystem::RenderDebug(ComponentManager& cm, Renderer* renderer, Camera&
     if (!renderer) return;
     
     // Get all entities with Collider and Transform
-    std::vector<Entity> entitiesWithColliders = cm.GetEntitiesWithCollider();
     std::vector<AABB> aabbs;
     
-    for (Entity entity : entitiesWithColliders) {
-        ColliderComponent* collider = cm.GetCollider(entity);
-        TransformComponent* transform = cm.GetTransform(entity);
+    auto colliderArray = cm.GetComponentArray<ColliderComponent>();
+    auto& colliderVec = colliderArray->GetComponentArray();
+    
+    for (size_t i = 0; i < colliderVec.size(); ++i) {
+        Entity entity = colliderArray->GetEntityAtIndex(i);
+        ColliderComponent& collider = colliderVec[i];
         
-        if (!collider || !transform || !collider->enabled) continue;
+        if (!collider.enabled) continue;
+        
+        if (!cm.HasComponent<TransformComponent>(entity)) continue;
+        TransformComponent& transform = cm.GetComponent<TransformComponent>(entity);
         
         // Calculate world-space AABB
         AABB worldAABB;
-        worldAABB.extents.x = transform->scale.x * collider->localAABB.extents.x;
-        worldAABB.extents.y = transform->scale.y * collider->localAABB.extents.y;
-        worldAABB.extents.z = transform->scale.z * collider->localAABB.extents.z;
+        worldAABB.extents.x = transform.scale.x * collider.localAABB.extents.x;
+        worldAABB.extents.y = transform.scale.y * collider.localAABB.extents.y;
+        worldAABB.extents.z = transform.scale.z * collider.localAABB.extents.z;
         
-        worldAABB.center.x = transform->position.x + (transform->scale.x * collider->localAABB.center.x);
-        worldAABB.center.y = transform->position.y + (transform->scale.y * collider->localAABB.center.y);
-        worldAABB.center.z = transform->position.z + (transform->scale.z * collider->localAABB.center.z);
+        worldAABB.center.x = transform.position.x + (transform.scale.x * collider.localAABB.center.x);
+        worldAABB.center.y = transform.position.y + (transform.scale.y * collider.localAABB.center.y);
+        worldAABB.center.z = transform.position.z + (transform.scale.z * collider.localAABB.center.z);
         
         aabbs.push_back(worldAABB);
     }

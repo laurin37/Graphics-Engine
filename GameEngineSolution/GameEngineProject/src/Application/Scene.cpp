@@ -138,17 +138,23 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     
     // Gather ECS lights
     std::vector<PointLight> ecsLights;
-    const auto& lightEntities = m_ecsComponentManager.GetEntitiesWithLight();
-    for (ECS::Entity entity : lightEntities) {
-        auto* light = m_ecsComponentManager.GetLight(entity);
-        auto* transform = m_ecsComponentManager.GetTransform(entity);
+    
+    auto lightArray = m_ecsComponentManager.GetComponentArray<ECS::LightComponent>();
+    auto& lightVec = lightArray->GetComponentArray();
+    
+    for (size_t i = 0; i < lightVec.size(); ++i) {
+        ECS::Entity entity = lightArray->GetEntityAtIndex(i);
+        ECS::LightComponent& light = lightVec[i];
         
-        if (light && transform && light->enabled) {
-            PointLight pl;
-            pl.position = DirectX::XMFLOAT4(transform->position.x, transform->position.y, transform->position.z, light->range);
-            pl.color = light->color;
-            ecsLights.push_back(pl);
-        }
+        if (!light.enabled) continue;
+        
+        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity)) continue;
+        ECS::TransformComponent& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
+        
+        PointLight pl;
+        pl.position = DirectX::XMFLOAT4(transform.position.x, transform.position.y, transform.position.z, light.range);
+        pl.color = light.color;
+        ecsLights.push_back(pl);
     }
     
     // Get ECS camera and create temporary Camera adapter for renderer
@@ -158,20 +164,27 @@ void Scene::Render(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCol
     if (m_ecsCameraSystem.GetActiveCamera(m_ecsComponentManager, ecsView, ecsProj)) {
         // Find player entity with camera to get position/rotation
         ECS::Entity cameraEntity = m_ecsComponentManager.GetActiveCamera();
-        auto* transform = m_ecsComponentManager.GetTransform(cameraEntity);
-        auto* cameraComp = m_ecsComponentManager.GetCamera(cameraEntity);
-        auto* playerController = m_ecsComponentManager.GetPlayerController(cameraEntity);
-        if (transform) {
-            DirectX::XMFLOAT3 position = transform->position;
-            if (cameraComp) {
-                position.x += cameraComp->positionOffset.x;
-                position.y += cameraComp->positionOffset.y;
-                position.z += cameraComp->positionOffset.z;
+        
+        if (m_ecsComponentManager.HasComponent<ECS::TransformComponent>(cameraEntity)) {
+            auto& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(cameraEntity);
+            
+            DirectX::XMFLOAT3 position = transform.position;
+            
+            if (m_ecsComponentManager.HasComponent<ECS::CameraComponent>(cameraEntity)) {
+                auto& cameraComp = m_ecsComponentManager.GetComponent<ECS::CameraComponent>(cameraEntity);
+                position.x += cameraComp.positionOffset.x;
+                position.y += cameraComp.positionOffset.y;
+                position.z += cameraComp.positionOffset.z;
             }
 
-            float pitch = playerController ? playerController->viewPitch : transform->rotation.x;
+            float pitch = transform.rotation.x;
+            if (m_ecsComponentManager.HasComponent<ECS::PlayerControllerComponent>(cameraEntity)) {
+                auto& playerController = m_ecsComponentManager.GetComponent<ECS::PlayerControllerComponent>(cameraEntity);
+                pitch = playerController.viewPitch;
+            }
+            
             tempCamera.SetPosition(position.x, position.y, position.z);
-            tempCamera.SetRotation(pitch, transform->rotation.y, transform->rotation.z);
+            tempCamera.SetRotation(pitch, transform.rotation.y, transform.rotation.z);
         }
     }
     
@@ -208,15 +221,21 @@ void Scene::RebuildRenderCache()
     m_renderCache.clear();
     m_entityToRenderCacheIndex.clear();
 
-    const auto& entities = m_ecsComponentManager.GetEntitiesWithRenderAndTransform();
-    m_renderCache.reserve(entities.size());
+    auto renderArray = m_ecsComponentManager.GetComponentArray<ECS::RenderComponent>();
+    auto& renderVec = renderArray->GetComponentArray();
+    
+    m_renderCache.reserve(renderVec.size());
 
-    for (ECS::Entity entity : entities)
-    {
-        auto* transform = m_ecsComponentManager.GetTransform(entity);
-        auto* render = m_ecsComponentManager.GetRender(entity);
-        if (!transform || !render || !render->mesh || !render->material) continue;
-        CreateRenderCacheEntry(entity, transform, render);
+    for (size_t i = 0; i < renderVec.size(); ++i) {
+        ECS::Entity entity = renderArray->GetEntityAtIndex(i);
+        ECS::RenderComponent& render = renderVec[i];
+        
+        if (!render.mesh || !render.material) continue;
+        
+        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity)) continue;
+        ECS::TransformComponent& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
+        
+        CreateRenderCacheEntry(entity, &transform, &render);
     }
 }
 
@@ -225,48 +244,63 @@ void Scene::UpdateRenderCache()
     for (size_t i = 0; i < m_renderCache.size();)
     {
         ECS::Entity entity = m_renderCache[i].entity;
-        auto* transform = m_ecsComponentManager.GetTransform(entity);
-        auto* render = m_ecsComponentManager.GetRender(entity);
+        
+        // Check if components still exist
+        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity) ||
+            !m_ecsComponentManager.HasComponent<ECS::RenderComponent>(entity))
+        {
+            RemoveRenderCacheEntry(i);
+            continue;
+        }
+        
+        auto& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
+        auto& render = m_ecsComponentManager.GetComponent<ECS::RenderComponent>(entity);
 
-        if (!transform || !render || !render->mesh || !render->material)
+        if (!render.mesh || !render.material)
         {
             RemoveRenderCacheEntry(i);
             continue;
         }
 
         bool transformChanged =
-            transform->position.x != m_renderCache[i].lastPosition.x ||
-            transform->position.y != m_renderCache[i].lastPosition.y ||
-            transform->position.z != m_renderCache[i].lastPosition.z ||
-            transform->rotation.x != m_renderCache[i].lastRotation.x ||
-            transform->rotation.y != m_renderCache[i].lastRotation.y ||
-            transform->rotation.z != m_renderCache[i].lastRotation.z ||
-            transform->scale.x != m_renderCache[i].lastScale.x ||
-            transform->scale.y != m_renderCache[i].lastScale.y ||
-            transform->scale.z != m_renderCache[i].lastScale.z;
+            transform.position.x != m_renderCache[i].lastPosition.x ||
+            transform.position.y != m_renderCache[i].lastPosition.y ||
+            transform.position.z != m_renderCache[i].lastPosition.z ||
+            transform.rotation.x != m_renderCache[i].lastRotation.x ||
+            transform.rotation.y != m_renderCache[i].lastRotation.y ||
+            transform.rotation.z != m_renderCache[i].lastRotation.z ||
+            transform.scale.x != m_renderCache[i].lastScale.x ||
+            transform.scale.y != m_renderCache[i].lastScale.y ||
+            transform.scale.z != m_renderCache[i].lastScale.z;
 
         bool renderChanged =
-            render->mesh != m_renderCache[i].instance.mesh ||
-            render->material.get() != m_renderCache[i].instance.material;
+            render.mesh != m_renderCache[i].instance.mesh ||
+            render.material.get() != m_renderCache[i].instance.material;
 
         if (transformChanged || renderChanged)
         {
-            RefreshRenderCacheEntry(i, transform, render);
+            RefreshRenderCacheEntry(i, &transform, &render);
         }
 
         ++i;
     }
 
-    const auto& entities = m_ecsComponentManager.GetEntitiesWithRenderAndTransform();
-    for (ECS::Entity entity : entities)
-    {
+    // Check for new entities
+    auto renderArray = m_ecsComponentManager.GetComponentArray<ECS::RenderComponent>();
+    auto& renderVec = renderArray->GetComponentArray();
+    
+    for (size_t i = 0; i < renderVec.size(); ++i) {
+        ECS::Entity entity = renderArray->GetEntityAtIndex(i);
+        
         if (m_entityToRenderCacheIndex.find(entity) != m_entityToRenderCacheIndex.end()) continue;
-
-        auto* transform = m_ecsComponentManager.GetTransform(entity);
-        auto* render = m_ecsComponentManager.GetRender(entity);
-        if (!transform || !render || !render->mesh || !render->material) continue;
-
-        CreateRenderCacheEntry(entity, transform, render);
+        
+        ECS::RenderComponent& render = renderVec[i];
+        if (!render.mesh || !render.material) continue;
+        
+        if (!m_ecsComponentManager.HasComponent<ECS::TransformComponent>(entity)) continue;
+        ECS::TransformComponent& transform = m_ecsComponentManager.GetComponent<ECS::TransformComponent>(entity);
+        
+        CreateRenderCacheEntry(entity, &transform, &render);
     }
 }
 
@@ -335,16 +369,22 @@ bool Scene::TryComputeWorldBounds(ECS::Entity entity, const ECS::TransformCompon
         instance.worldAABB.center.z = transform->position.z + transform->scale.z * localBounds.center.z;
     };
 
-    if (auto* collider = m_ecsComponentManager.GetCollider(entity); collider && collider->enabled)
+    if (m_ecsComponentManager.HasComponent<ECS::ColliderComponent>(entity))
     {
-        computeFromLocal(collider->localAABB);
-        return true;
+        auto& collider = m_ecsComponentManager.GetComponent<ECS::ColliderComponent>(entity);
+        if (collider.enabled) {
+            computeFromLocal(collider.localAABB);
+            return true;
+        }
     }
 
-    if (auto* render = m_ecsComponentManager.GetRender(entity); render && render->mesh)
+    if (m_ecsComponentManager.HasComponent<ECS::RenderComponent>(entity))
     {
-        computeFromLocal(render->mesh->GetLocalBounds());
-        return true;
+        auto& render = m_ecsComponentManager.GetComponent<ECS::RenderComponent>(entity);
+        if (render.mesh) {
+            computeFromLocal(render.mesh->GetLocalBounds());
+            return true;
+        }
     }
 
     return false;

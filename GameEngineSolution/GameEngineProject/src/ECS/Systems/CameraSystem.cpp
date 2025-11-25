@@ -7,31 +7,35 @@ using namespace DirectX;
 namespace ECS {
 
 void CameraSystem::Update(ComponentManager& cm) {
-    // Get all entities with cameras
-    std::vector<Entity> cameras = cm.GetEntitiesWithCamera();
+    // Iterate over all camera components
+    auto cameraArray = cm.GetComponentArray<CameraComponent>();
+    auto& cameraVec = cameraArray->GetComponentArray();
     
-    for (Entity entity : cameras) {
-        CameraComponent* camera = cm.GetCamera(entity);
-        TransformComponent* transform = cm.GetTransform(entity);
-        PlayerControllerComponent* controller = cm.GetPlayerController(entity);
+    for (size_t i = 0; i < cameraVec.size(); ++i) {
+        Entity entity = cameraArray->GetEntityAtIndex(i);
+        CameraComponent& camera = cameraVec[i];
         
-        if (!camera || !transform) continue;
+        if (!cm.HasComponent<TransformComponent>(entity)) continue;
+        TransformComponent& transform = cm.GetComponent<TransformComponent>(entity);
+        
+        // Optional player controller for pitch
+        PlayerControllerComponent* controller = cm.GetComponentPtr<PlayerControllerComponent>(entity);
         
         // Update projection matrix
-        float fovRadians = XMConvertToRadians(camera->fov);
-        XMMATRIX proj = XMMatrixPerspectiveFovLH(fovRadians, camera->aspectRatio, 
-                                                   camera->nearPlane, camera->farPlane);
-        XMStoreFloat4x4(&camera->projectionMatrix, proj);
+        float fovRadians = XMConvertToRadians(camera.fov);
+        XMMATRIX proj = XMMatrixPerspectiveFovLH(fovRadians, camera.aspectRatio, 
+                                                   camera.nearPlane, camera.farPlane);
+        XMStoreFloat4x4(&camera.projectionMatrix, proj);
         
         // Update view matrix from transform
-        XMVECTOR pos = XMLoadFloat3(&transform->position);
-        float pitch = controller ? controller->viewPitch : transform->rotation.x;
-        float yaw = transform->rotation.y;
-        float roll = transform->rotation.z;
+        XMVECTOR pos = XMLoadFloat3(&transform.position);
+        float pitch = controller ? controller->viewPitch : transform.rotation.x;
+        float yaw = transform.rotation.y;
+        float roll = transform.rotation.z;
         XMVECTOR rot = XMVectorSet(pitch, yaw, roll, 0.0f);
         
         // Apply camera offset
-        XMVECTOR offset = XMLoadFloat3(&camera->positionOffset);
+        XMVECTOR offset = XMLoadFloat3(&camera.positionOffset);
         pos = XMVectorAdd(pos, offset);
         
         // Calculate forward, right, up vectors from rotation
@@ -44,7 +48,7 @@ void CameraSystem::Update(ComponentManager& cm) {
         
         // Create view matrix
         XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
-        XMStoreFloat4x4(&camera->viewMatrix, view);
+        XMStoreFloat4x4(&camera.viewMatrix, view);
     }
 }
 
@@ -56,12 +60,12 @@ bool CameraSystem::GetActiveCamera(ComponentManager& cm, XMMATRIX& viewOut, XMMA
         return false; // No active camera
     }
     
-    CameraComponent* camera = cm.GetCamera(activeCameraEntity);
-    if (!camera) return false;
+    if (!cm.HasComponent<CameraComponent>(activeCameraEntity)) return false;
+    CameraComponent& camera = cm.GetComponent<CameraComponent>(activeCameraEntity);
     
     // Load matrices
-    viewOut = XMLoadFloat4x4(&camera->viewMatrix);
-    projOut = XMLoadFloat4x4(&camera->projectionMatrix);
+    viewOut = XMLoadFloat4x4(&camera.viewMatrix);
+    projOut = XMLoadFloat4x4(&camera.projectionMatrix);
     
     return true;
 }
