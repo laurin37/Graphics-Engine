@@ -46,4 +46,7 @@ private:
     
     // Debug flags
     bool m_showDebugCollision = false;
+    
+    // Event subscriptions
+    std::vector<EventBus::SubscriptionId> m_eventSubscriptions;
 };

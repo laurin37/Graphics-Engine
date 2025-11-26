@@ -53,10 +53,13 @@ Scene::Scene(AssetManager* assetManager, Graphics* graphics, Input* input, Event
     m_ecsRenderSystem = m_systemManager.AddSystem<ECS::RenderSystem>(m_ecsComponentManager);
 
     // Subscribe systems to EventBus
-    if (m_eventBus && m_ecsPlayerMovementSystem) {
-        m_eventBus->Subscribe(EventType::KeyPressed, [this](Event& e) {
+    if (m_eventBus && m_ecsPlayerMovementSystem) 
+    {
+        auto id = m_eventBus->Subscribe(EventType::KeyPressed, [this](Event& e) 
+        {
             m_ecsPlayerMovementSystem->OnEvent(e);
-        });
+        }, EventPriority::Normal);
+        m_eventSubscriptions.push_back(id);
     }
 
     // Initialize UI
@@ -65,7 +68,15 @@ Scene::Scene(AssetManager* assetManager, Graphics* graphics, Input* input, Event
     // Load() is called explicitly by Game class
 }
 
-Scene::~Scene() = default;
+Scene::~Scene() 
+{
+    // Unsubscribe from all events
+    if (m_eventBus) {
+        for (auto id : m_eventSubscriptions) {
+            m_eventBus->Unsubscribe(EventType::KeyPressed, id);
+        }
+    }
+}
 
 void Scene::Load()
 {

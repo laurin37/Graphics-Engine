@@ -101,20 +101,22 @@ void Game::Render()
 void Game::SubscribeToEvents()
 {
     // Subscribe to Window Resize events
-    m_eventBus.Subscribe(EventType::WindowResize, [this](Event& e) {
+    auto resizeId = m_eventBus.Subscribe(EventType::WindowResize, [this](Event& e) {
         // WindowResizeEvent& event = static_cast<WindowResizeEvent&>(e);
         // m_graphics.Resize(event.GetWidth(), event.GetHeight()); // TODO: Implement Graphics::Resize
         // m_renderer->OnResize(event.GetWidth(), event.GetHeight()); // TODO: Implement Renderer::OnResize
-    });
+    }, EventPriority::Normal);
+    m_eventSubscriptions.push_back(resizeId);
 
-    // Subscribe to Window Close events
-    m_eventBus.Subscribe(EventType::WindowClose, [this](Event& e) {
+    // Subscribe to Window Close events (High priority - app should handle first)
+    auto closeId = m_eventBus.Subscribe(EventType::WindowClose, [this](Event& e) {
         PostQuitMessage(0);
         e.Handled = true;
-    });
+    }, EventPriority::High);
+    m_eventSubscriptions.push_back(closeId);
 
-    // Subscribe to Key Pressed events
-    m_eventBus.Subscribe(EventType::KeyPressed, [this](Event& e) {
+    // Subscribe to Key Pressed events (High priority - app-level shortcuts)
+    auto keyId = m_eventBus.Subscribe(EventType::KeyPressed, [this](Event& e) {
         KeyPressedEvent& event = static_cast<KeyPressedEvent&>(e);
         
         // Skip key repeats (held keys generate repeatCount > 1)
@@ -144,5 +146,6 @@ void Game::SubscribeToEvents()
             e.Handled = true;
             break;
         }
-    });
+    }, EventPriority::High);
+    m_eventSubscriptions.push_back(keyId);
 }

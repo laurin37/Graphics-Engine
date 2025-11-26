@@ -16,6 +16,7 @@
 #include "ECS/ComponentManager.h"
 #include "ECS/SystemManager.h"
 #include "Events/Event.h"
+#include "Events/EventBus.h"
 
 // Forward declarations for Systems
 namespace ECS {
@@ -93,6 +94,9 @@ public:
     HealthSystem* m_healthSystem = nullptr;
     WeaponSystem* m_weaponSystem = nullptr;
     ProjectileSystem* m_projectileSystem = nullptr;
+
+    // Event subscriptions
+    std::vector<EventBus::SubscriptionId> m_eventSubscriptions;
 
     struct RenderCacheEntry
     {
