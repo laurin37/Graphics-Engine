@@ -18,36 +18,103 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\ECS\ComponentManager.h" />
+    <ClInclude Include="include\ECS\Components.h" />
+    <ClInclude Include="include\ECS\Entity.h" />
+    <ClInclude Include="include\ECS\System.h" />
+    <ClInclude Include="include\ECS\SystemManager.h" />
+    <ClInclude Include="include\ECS\Systems\CameraSystem.h" />
+    <ClInclude Include="include\ECS\Systems\ECSMovementSystem.h" />
+    <ClInclude Include="include\ECS\Systems\ECSPhysicsSystem.h" />
+    <ClInclude Include="include\ECS\Systems\ECSRenderSystem.h" />
+    <ClInclude Include="include\Input\Input.h" />
+    <ClInclude Include="include\Physics\Collision.h" />
+    <ClInclude Include="include\Physics\PhysicsConstants.h" />
+    <ClInclude Include="include\Platform\Window.h" />
+    <ClInclude Include="include\Renderer\BloomEffect.h" />
+    <ClInclude Include="include\Renderer\Camera.h" />
+    <ClInclude Include="include\Renderer\Graphics.h" />
+    <ClInclude Include="include\Renderer\Material.h" />
+    <ClInclude Include="include\Renderer\Mesh.h" />
+    <ClInclude Include="include\Renderer\MeshUtils.h" />
+    <ClInclude Include="include\Renderer\PostProcess.h" />
+    <ClInclude Include="include\Renderer\Renderer.h" />
+    <ClInclude Include="include\Renderer\RenderingConstants.h" />
+    <ClInclude Include="include\Renderer\Skybox.h" />
+    <ClInclude Include="include\ResourceManagement\AssetManager.h" />
+    <ClInclude Include="include\ResourceManagement\FontLoader.h" />
+    <ClInclude Include="include\ResourceManagement\JsonParser.h" />
+    <ClInclude Include="include\ResourceManagement\ModelLoader.h" />
+    <ClInclude Include="include\ResourceManagement\SceneLoader.h" />
+    <ClInclude Include="include\ResourceManagement\Shader.h" />
+    <ClInclude Include="include\ResourceManagement\TextureLoader.h" />
+    <ClInclude Include="include\UI\Crosshair.h" />
+    <ClInclude Include="include\UI\DebugUIRenderer.h" />
+    <ClInclude Include="include\UI\SimpleFont.h" />
+    <ClInclude Include="include\UI\UIRenderer.h" />
+    <ClInclude Include="include\Utils\EnginePCH.h" />
+    <ClInclude Include="include\Utils\Logger.h" />
+    <ClInclude Include="include\Utils\Transform.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\ECSMovementSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\ECSPhysicsSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\ECSRenderSystem.cpp" />
+    <ClCompile Include="src\Input\Input.cpp" />
+    <ClCompile Include="src\Platform\Window.cpp" />
+    <ClCompile Include="src\Renderer\BloomEffect.cpp" />
+    <ClCompile Include="src\Renderer\Camera.cpp" />
+    <ClCompile Include="src\Renderer\Graphics.cpp" />
+    <ClCompile Include="src\Renderer\Material.cpp" />
+    <ClCompile Include="src\Renderer\Mesh.cpp" />
+    <ClCompile Include="src\Renderer\PostProcess.cpp" />
+    <ClCompile Include="src\Renderer\Renderer.cpp" />
+    <ClCompile Include="src\Renderer\Skybox.cpp" />
+    <ClCompile Include="src\ResourceManagement\AssetManager.cpp" />
+    <ClCompile Include="src\ResourceManagement\FontLoader.cpp" />
+    <ClCompile Include="src\ResourceManagement\JsonParser.cpp" />
+    <ClCompile Include="src\ResourceManagement\ModelLoader.cpp" />
+    <ClCompile Include="src\ResourceManagement\SceneLoader.cpp" />
+    <ClCompile Include="src\ResourceManagement\Shader.cpp" />
+    <ClCompile Include="src\ResourceManagement\TextureLoader.cpp" />
+    <ClCompile Include="src\UI\Crosshair.cpp" />
+    <ClCompile Include="src\UI\DebugUIRenderer.cpp" />
+    <ClCompile Include="src\UI\SimpleFont.cpp" />
+    <ClCompile Include="src\UI\UIRenderer.cpp" />
+    <ClCompile Include="src\Utils\Logger.cpp" />
+    <ClCompile Include="src\Utils\Transform.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e2ee890c-f5ae-4b54-b9da-4738d1c3f441}</ProjectGuid>
-    <RootNamespace>GraphicsEngine</RootNamespace>
+    <ProjectGuid>{41ab5d6a-c074-4664-97b8-d247a0afffa7}</ProjectGuid>
+    <RootNamespace>Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>GameEngineProject</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,13 +138,25 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)include;</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);$(ProjectDir)include;</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -92,7 +171,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -105,10 +184,10 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -120,16 +199,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Windows</SubSystem>
+      <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <Text Include="CMakeLists.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -1,0 +1,724 @@
+{
+    "resources": {
+        "meshes": {
+            "cube": "../Assets/Models/basic/cube.obj",
+            "cylinder": "../Assets/Models/basic/cylinder.obj",
+            "cone": "../Assets/Models/basic/cone.obj",
+            "sphere": "../Assets/Models/basic/sphere.obj",
+            "torus": "../Assets/Models/basic/torus.obj",
+            "room": "../Assets/Models/room.obj"
+        },
+        "materials": {
+            "matFloor": {
+                "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular": 0.2,
+                "shininess": 10.0,
+                "texture": "../Assets/Textures/pine_bark_diff_4k.jpg",
+                "normalMap": "../Assets/Textures/pine_bark_disp_4k.png"
+            },
+            "matPillar": {
+                "color": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "specular": 0.8,
+                "shininess": 32.0,
+                "texture": "../Assets/Textures/blue_metal_plate_diff_4k.jpg",
+                "normalMap": "../Assets/Textures/blue_metal_plate_disp_4k.png"
+            },
+            "matRoof": {
+                "color": [
+                    0.8,
+                    0.1,
+                    0.1,
+                    1.0
+                ],
+                "specular": 0.8,
+                "shininess": 32.0
+            },
+            "matGold": {
+                "color": [
+                    1.0,
+                    0.8,
+                    0.0,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 64.0
+            },
+            "matGlowing": {
+                "color": [
+                    2.0,
+                    2.0,
+                    2.0,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 256.0
+            },
+            "matOrbRed": {
+                "color": [
+                    2.5,
+                    1.2,
+                    1.2,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 256.0
+            },
+            "matOrbGreen": {
+                "color": [
+                    1.2,
+                    2.5,
+                    1.2,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 256.0
+            },
+            "matOrbBlue": {
+                "color": [
+                    1.2,
+                    1.2,
+                    2.5,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 256.0
+            },
+            "matOrbOrange": {
+                "color": [
+                    2.5,
+                    2.0,
+                    1.2,
+                    1.0
+                ],
+                "specular": 1.0,
+                "shininess": 256.0
+            }
+        }
+    },
+    "entities": [
+        {
+            "name": "Floor",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        -0.1,
+                        0.0
+                    ],
+                    "scale": [
+                        100.0,
+                        0.1,
+                        100.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cube",
+                    "material": "matFloor"
+                },
+                "physics": {
+                    "useGravity": false,
+                    "checkCollisions": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Player",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        0.9,
+                        -5.0
+                    ],
+                    "scale": [
+                        0.2,
+                        0.9,
+                        0.2
+                    ]
+                },
+                "render": {
+                    "mesh": "cylinder",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": true,
+                    "mass": 80.0,
+                    "checkCollisions": true,
+                    "gravityAcceleration": -15.0,
+                    "maxFallSpeed": -15.0
+                },
+                "collider": {
+                    "center": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "extents": [
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "playerController": {
+                    "moveSpeed": 5.0,
+                    "jumpForce": 7.0,
+                    "mouseSensitivity": 0.0005,
+                    "cameraHeight": 0.8
+                },
+                "camera": {
+                    "fov": 70.0,
+                    "aspectRatio": 1.777,
+                    "nearPlane": 0.1,
+                    "farPlane": 1000.0,
+                    "isActive": true,
+                    "offset": [
+                        0.0,
+                        0.8,
+                        0.0
+                    ]
+                },
+                "weapon": {
+                    "damage": 10.0,
+                    "range": 50.0,
+                    "fireRate": 0.2,
+                    "timeSinceLastShot": 0.0,
+                    "isAutomatic": true,
+                    "currentAmmo": 30,
+                    "maxAmmo": 30,
+                    "projectileAmmo": 5,
+                    "maxProjectileAmmo": 5
+                }
+            }
+        },
+        {
+            "name": "Room",
+            "components": {
+                "transform": {
+                    "position": [
+                        30.0,
+                        -1.0,
+                        30.0
+                    ]
+                },
+                "render": {
+                    "mesh": "room",
+                    "material": "matGold"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Pillar_1",
+            "components": {
+                "transform": {
+                    "position": [
+                        6.0,
+                        1.0,
+                        6.0
+                    ],
+                    "scale": [
+                        1.0,
+                        2.0,
+                        1.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cylinder",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Roof_1",
+            "components": {
+                "transform": {
+                    "position": [
+                        6.0,
+                        5.0,
+                        6.0
+                    ],
+                    "scale": [
+                        1.5,
+                        1.0,
+                        1.5
+                    ]
+                },
+                "render": {
+                    "mesh": "cone",
+                    "material": "matRoof"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Pillar_2",
+            "components": {
+                "transform": {
+                    "position": [
+                        6.0,
+                        1.0,
+                        -6.0
+                    ],
+                    "scale": [
+                        1.0,
+                        2.0,
+                        1.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cylinder",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Roof_2",
+            "components": {
+                "transform": {
+                    "position": [
+                        6.0,
+                        5.0,
+                        -6.0
+                    ],
+                    "scale": [
+                        1.5,
+                        1.0,
+                        1.5
+                    ]
+                },
+                "render": {
+                    "mesh": "cone",
+                    "material": "matRoof"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Pillar_3",
+            "components": {
+                "transform": {
+                    "position": [
+                        -6.0,
+                        1.0,
+                        6.0
+                    ],
+                    "scale": [
+                        1.0,
+                        2.0,
+                        1.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cylinder",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Roof_3",
+            "components": {
+                "transform": {
+                    "position": [
+                        -6.0,
+                        5.0,
+                        6.0
+                    ],
+                    "scale": [
+                        1.5,
+                        1.0,
+                        1.5
+                    ]
+                },
+                "render": {
+                    "mesh": "cone",
+                    "material": "matRoof"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Pillar_4",
+            "components": {
+                "transform": {
+                    "position": [
+                        -6.0,
+                        1.0,
+                        -6.0
+                    ],
+                    "scale": [
+                        1.0,
+                        2.0,
+                        1.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cylinder",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Roof_4",
+            "components": {
+                "transform": {
+                    "position": [
+                        -6.0,
+                        5.0,
+                        -6.0
+                    ],
+                    "scale": [
+                        1.5,
+                        1.0,
+                        1.5
+                    ]
+                },
+                "render": {
+                    "mesh": "cone",
+                    "material": "matRoof"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Pedestal",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        2.0,
+                        1.0,
+                        2.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cube",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "collider": {
+                    "autoGenerate": true
+                }
+            }
+        },
+        {
+            "name": "Artifact",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        2.0,
+                        0.0
+                    ],
+                    "rotation": [
+                        1.5708,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        1.5,
+                        1.5,
+                        1.5
+                    ]
+                },
+                "render": {
+                    "mesh": "torus",
+                    "material": "matGold"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "rotate": {
+                    "axis": [
+                        0.0,
+                        1.0,
+                        0.0
+                    ],
+                    "speed": 1.0
+                }
+            }
+        },
+        {
+            "name": "Orb_Red",
+            "components": {
+                "transform": {
+                    "position": [
+                        3.0,
+                        2.0,
+                        0.0
+                    ],
+                    "scale": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ]
+                },
+                "render": {
+                    "mesh": "sphere",
+                    "material": "matOrbRed"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "orbit": {
+                    "center": [
+                        0.0,
+                        2.0,
+                        0.0
+                    ],
+                    "radius": 3.0,
+                    "speed": 0.5,
+                    "angle": 0.0
+                },
+                "light": {
+                    "color": [
+                        1.0,
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "intensity": 1.0,
+                    "range": 15.0
+                },
+                "health": {
+                    "maxHealth": 100.0,
+                    "currentHealth": 100.0,
+                    "regenerationRate": 0.0
+                }
+            }
+        },
+        {
+            "name": "Orb_Green",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        2.0,
+                        3.0
+                    ],
+                    "scale": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ]
+                },
+                "render": {
+                    "mesh": "sphere",
+                    "material": "matOrbGreen"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "orbit": {
+                    "center": [
+                        0.0,
+                        2.0,
+                        0.0
+                    ],
+                    "radius": 3.0,
+                    "speed": 0.5,
+                    "angle": 1.5708
+                },
+                "light": {
+                    "color": [
+                        0.0,
+                        1.0,
+                        0.0,
+                        1.0
+                    ],
+                    "intensity": 1.0,
+                    "range": 15.0
+                }
+            }
+        },
+        {
+            "name": "Orb_Blue",
+            "components": {
+                "transform": {
+                    "position": [
+                        -3.0,
+                        2.0,
+                        0.0
+                    ],
+                    "scale": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ]
+                },
+                "render": {
+                    "mesh": "sphere",
+                    "material": "matOrbBlue"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "orbit": {
+                    "center": [
+                        0.0,
+                        2.0,
+                        0.0
+                    ],
+                    "radius": 3.0,
+                    "speed": 0.5,
+                    "angle": 3.1416
+                },
+                "light": {
+                    "color": [
+                        0.0,
+                        0.0,
+                        1.0,
+                        1.0
+                    ],
+                    "intensity": 1.0,
+                    "range": 15.0
+                }
+            }
+        },
+        {
+            "name": "Orb_Orange",
+            "components": {
+                "transform": {
+                    "position": [
+                        0.0,
+                        2.0,
+                        -3.0
+                    ],
+                    "scale": [
+                        0.5,
+                        0.5,
+                        0.5
+                    ]
+                },
+                "render": {
+                    "mesh": "sphere",
+                    "material": "matOrbOrange"
+                },
+                "physics": {
+                    "useGravity": false
+                },
+                "orbit": {
+                    "center": [
+                        0.0,
+                        2.0,
+                        0.0
+                    ],
+                    "radius": 3.0,
+                    "speed": 0.5,
+                    "angle": 4.7124
+                },
+                "light": {
+                    "color": [
+                        1.0,
+                        0.5,
+                        0.0,
+                        1.0
+                    ],
+                    "intensity": 1.0,
+                    "range": 15.0
+                }
+            }
+        },
+        {
+            "name": "FallingBox",
+            "components": {
+                "transform": {
+                    "position": [
+                        -5.0,
+                        10.0,
+                        0.0
+                    ],
+                    "scale": [
+                        1.0,
+                        0.5,
+                        1.0
+                    ]
+                },
+                "render": {
+                    "mesh": "cube",
+                    "material": "matPillar"
+                },
+                "physics": {
+                    "useGravity": true,
+                    "mass": 1.0
+                },
+                "collider": {
+                    "autoGenerate": true
+                },
+                "health": {
+                    "maxHealth": 100.0,
+                    "currentHealth": 100.0,
+                    "isDead": false,
+                    "regenerationRate": 0.0
+                }
+            }
+        }
+    ]
+}
