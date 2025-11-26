@@ -1,4 +1,4 @@
-Project Context: GeminiDX Engine
+Project Context: Game Engine
 
 Project Overview
 
@@ -70,6 +70,18 @@ Input Class: Abstracts Win32 raw input into IsKeyDown and Mouse Delta queries.
 
 Shader Classes: VertexShader and PixelShader wrappers that handle compilation and binding.
 
+5. ECS Architecture
+
+System Base Class: All systems inherit from a `System` base class.
+- Provides access to `ComponentManager`.
+- Virtual `Update(float deltaTime)` method.
+
+SystemManager: Manages the lifecycle and update order of all systems.
+- `AddSystem<T>()`: Registers a new system.
+- `Update(float deltaTime)`: Updates all active systems.
+
+ComponentManager: (Existing) Manages component arrays and entity signatures.
+
 Current Features (Implemented)
 
 Rendering:
@@ -97,6 +109,14 @@ Asset Loading (OBJ Models, WIC Textures).
 Material System (Support for Textures and Properties).
 
 Roadmap: Future Goals
+
+Phase 0: Project Restructuring (Immediate)
+
+Goal: Modularize the codebase.
+
+Features:
+- Split into `GameEngine` (Static Library), `Game` (App), and `Editor` (App).
+- Clean separation of Engine vs Game logic.
 
 Phase 1: Visual Polish (Post-Processing)
 

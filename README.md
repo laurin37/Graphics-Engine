@@ -1,5 +1,5 @@
 ![Build Status](https://github.com/laurin37/Graphics-Engine/actions/workflows/build.yml/badge.svg)
-# GeminiDX Engine
+# Game Engine
 
 A custom 3D Graphics Engine built from scratch using **C++23** and **DirectX 11**. This project demonstrates a modern, data-driven architecture using an Entity-Component-System (ECS).
 
