@@ -1,7 +1,4 @@
 #include "Systems/PlayerMovementSystem.h"
-#include "Input/Input.h"
-#include "Events/InputEvents.h"
-#include "Events/EventBus.h"
 #include <DirectXMath.h>
 #include "Utils/Logger.h"
 
@@ -14,55 +11,40 @@ void PlayerMovementSystem::Init() {
     m_controllerArray = m_componentManager.GetComponentArray<PlayerControllerComponent>();
     m_transformArray = m_componentManager.GetComponentArray<TransformComponent>();
     m_physicsArray = m_componentManager.GetComponentArray<PhysicsComponent>();
-    
-    // Subscribe to keyboard events (EventBus set by SystemManager)
-    if (m_eventBus) {
-        m_eventBus->Subscribe(EventType::KeyPressed, [this](Event& e) {
-            this->OnEvent(e);
-        });
-    }
 }
 
 void PlayerMovementSystem::Update(float deltaTime) {
-    // Iterate over all player controller components (cached array)
-    auto& controllerVec = m_controllerArray->GetComponentArray();
+    // Use Query API to get entities with Controller, Transform, and Input
+    auto entities = m_componentManager.QueryEntities<PlayerControllerComponent, TransformComponent, InputComponent>();
     
-    for (size_t i = 0; i < controllerVec.size(); ++i) {
-        Entity entity = m_controllerArray->GetEntityAtIndex(i);
-        PlayerControllerComponent& controller = controllerVec[i];
-        
-        if (!m_componentManager.HasComponent<TransformComponent>(entity)) continue;
-        TransformComponent& transform = m_componentManager.GetComponent<TransformComponent>(entity);
-        
-        // Optional physics
-        PhysicsComponent* physics = m_componentManager.GetComponentPtr<PhysicsComponent>(entity);
+    for (Entity entity : entities) {
+        auto& controller = m_componentManager.GetComponent<PlayerControllerComponent>(entity);
+        auto& transform = m_componentManager.GetComponent<TransformComponent>(entity);
+        auto& input = m_componentManager.GetComponent<InputComponent>(entity);
         
         // Handle mouse look and camera
-        HandleMouseLook(entity, transform, controller, m_input, deltaTime);
+        HandleMouseLook(entity, transform, controller, input, deltaTime);
         
-        // Handle movement (WASD)
-        if (physics) {
-            HandleMovement(entity, transform, *physics, controller, m_input, deltaTime);
+        // Handle movement (WASD) and Jump
+        if (m_componentManager.HasComponent<PhysicsComponent>(entity)) {
+            auto& physics = m_componentManager.GetComponent<PhysicsComponent>(entity);
+            HandleMovement(entity, transform, physics, controller, input, deltaTime);
         }
     }
 }
 
 void PlayerMovementSystem::HandleMovement(Entity entity, TransformComponent& transform, PhysicsComponent& physics,
-                                         PlayerControllerComponent& controller, Input& input, float deltaTime) {
-    // Get movement direction from input
-    XMFLOAT3 moveDir = { 0.0f, 0.0f, 0.0f };
-    
-    if (input.IsActionDown(Action::MoveForward)) moveDir.z += 1.0f;
-    if (input.IsActionDown(Action::MoveBackward)) moveDir.z -= 1.0f;
-    if (input.IsActionDown(Action::MoveRight)) moveDir.x += 1.0f;
-    if (input.IsActionDown(Action::MoveLeft)) moveDir.x -= 1.0f;
+                                         PlayerControllerComponent& controller, const InputComponent& input, float deltaTime) {
+    // Get movement direction from input component
+    XMFLOAT3 moveDir = { input.moveX, 0.0f, input.moveZ };
     
     // Normalize and apply speed
     XMVECTOR moveDirVec = XMLoadFloat3(&moveDir);
     float length = XMVectorGetX(XMVector3Length(moveDirVec));
     
     if (length > 0.0f) {
-        moveDirVec = XMVector3Normalize(moveDirVec);
+        // Input is already normalized by InputSystem, but safety check
+        if (length > 1.0f) moveDirVec = XMVector3Normalize(moveDirVec);
         
         // Rotate movement direction based on player's Y rotation (yaw)
         float yaw = transform.rotation.y;
@@ -80,14 +62,20 @@ void PlayerMovementSystem::HandleMovement(Entity entity, TransformComponent& tra
         physics.velocity.x = 0.0f;
         physics.velocity.z = 0.0f;
     }
+
+    // Jump Logic
+    if (input.jump && physics.isGrounded && controller.canJump) {
+        physics.velocity.y = controller.jumpForce;
+        physics.isGrounded = false; // Prevent multi-jump in same frame
+    }
 }
 
 void PlayerMovementSystem::HandleMouseLook(Entity entity, TransformComponent& transform,
                                           PlayerControllerComponent& controller, 
-                                          Input& input, float deltaTime) {
-    // Get mouse delta
-    float mouseDeltaX = static_cast<float>(input.GetMouseDeltaX());
-    float mouseDeltaY = static_cast<float>(input.GetMouseDeltaY());
+                                          const InputComponent& input, float deltaTime) {
+    // Get mouse delta from input component
+    float mouseDeltaX = input.lookX;
+    float mouseDeltaY = input.lookY;
     
     // Apply rotation (yaw = Y rotation, pitch = X rotation)
     transform.rotation.y += mouseDeltaX * controller.mouseSensitivity;  // Yaw
@@ -101,36 +89,6 @@ void PlayerMovementSystem::HandleMouseLook(Entity entity, TransformComponent& tr
     // Keep the physical player mesh upright (only yaw affects it)
     transform.rotation.x = 0.0f;
     transform.rotation.z = 0.0f;
-
-    // Note: CameraSystem will handle updating the camera view matrix based on this transform
-}
-
-void PlayerMovementSystem::OnEvent(Event& e)
-{
-    // Only handle KeyPressed events
-    if (e.GetEventType() != EventType::KeyPressed) return;
-    
-    KeyPressedEvent& event = static_cast<KeyPressedEvent&>(e);
-    
-    if (event.GetKeyCode() == VK_SPACE)
-    {
-        // Iterate over all player controller components (cached array)
-        auto& controllerVec = m_controllerArray->GetComponentArray();
-
-        for (size_t i = 0; i < controllerVec.size(); ++i) {
-            Entity entity = m_controllerArray->GetEntityAtIndex(i);
-            PlayerControllerComponent& controller = controllerVec[i];
-
-            if (!m_componentManager.HasComponent<PhysicsComponent>(entity)) continue;
-            PhysicsComponent& physics = m_componentManager.GetComponent<PhysicsComponent>(entity);
-
-            // Jump logic
-            if (physics.isGrounded && controller.canJump) {
-                physics.velocity.y = controller.jumpForce;
-                e.Handled = true;
-            }
-        }
-    }
 }
 
 } // namespace ECS

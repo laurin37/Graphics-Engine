@@ -11,6 +11,7 @@
 #include "Input/Input.h"
 #include "Renderer/PostProcess.h"
 #include "ECS/Systems/ECSPhysicsSystem.h"
+#include "ECS/Systems/InputSystem.h"
 #include "ECS/Systems/ECSRenderSystem.h"
 #include "ECS/Systems/ECSMovementSystem.h"
 #include "Systems/PlayerMovementSystem.h"
@@ -42,14 +43,15 @@ Scene::Scene(AssetManager* assetManager, Graphics* graphics, Input* input, Event
     m_ecsComponentManager.SetEventBus(m_eventBus);
     
     // 1. Core Systems
+    m_inputSystem = m_systemManager.AddSystem<ECS::InputSystem>(m_ecsComponentManager, *m_input);
     m_ecsPhysicsSystem = m_systemManager.AddSystem<ECS::PhysicsSystem>(m_ecsComponentManager);
     m_ecsMovementSystem = m_systemManager.AddSystem<ECS::MovementSystem>(m_ecsComponentManager);
     m_ecsCameraSystem = m_systemManager.AddSystem<ECS::CameraSystem>(m_ecsComponentManager);
     
     // 2. Gameplay Systems (depend on Input)
     if (m_input) {
-        m_ecsPlayerMovementSystem = m_systemManager.AddSystem<ECS::PlayerMovementSystem>(m_ecsComponentManager, *m_input);
-        m_weaponSystem = m_systemManager.AddSystem<WeaponSystem>(m_ecsComponentManager, *m_input);
+        m_ecsPlayerMovementSystem = m_systemManager.AddSystem<ECS::PlayerMovementSystem>(m_ecsComponentManager);
+        m_weaponSystem = m_systemManager.AddSystem<WeaponSystem>(m_ecsComponentManager);
         m_weaponSystem->SetPhysicsSystem(m_ecsPhysicsSystem);
     }
     m_projectileSystem = m_systemManager.AddSystem<ProjectileSystem>(m_ecsComponentManager);

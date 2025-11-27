@@ -21,29 +21,26 @@ namespace ECS {
 // ==================================================================================
 class PlayerMovementSystem : public System {
 public:
-    PlayerMovementSystem(ComponentManager& cm, Input& input) 
-        : System(cm), m_input(input) {}
+    explicit PlayerMovementSystem(ComponentManager& cm) 
+        : System(cm) {}
 
     void Init() override;
     void Update(float deltaTime) override;
-    void OnEvent(Event& e);
     
     // System phase: PreUpdate (before physics)
     SystemPhase GetPhase() const override { return SystemPhase::PreUpdate; }
     bool CanParallelize() const override { return false; } // Writes to physics/transform
 
 private:
-    Input& m_input;
-    
     // Cached component arrays
     std::shared_ptr<ComponentArray<PlayerControllerComponent>> m_controllerArray;
     std::shared_ptr<ComponentArray<TransformComponent>> m_transformArray;
     std::shared_ptr<ComponentArray<PhysicsComponent>> m_physicsArray;
     
     void HandleMovement(Entity entity, TransformComponent& transform, PhysicsComponent& physics, 
-                       PlayerControllerComponent& controller, Input& input, float deltaTime);
+                       PlayerControllerComponent& controller, const InputComponent& input, float deltaTime);
     void HandleMouseLook(Entity entity, TransformComponent& transform, PlayerControllerComponent& controller, 
-                        Input& input, float deltaTime);
+                        const InputComponent& input, float deltaTime);
 };
 
 } // namespace ECS

@@ -3,6 +3,7 @@
 #include <DirectXMath.h>
 #include <memory>
 #include "../Physics/Collision.h"
+#include "Components/InputComponent.h"
 
 // Forward declarations
 class Mesh;

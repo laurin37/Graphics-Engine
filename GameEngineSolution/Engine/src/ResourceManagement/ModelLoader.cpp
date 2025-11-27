@@ -43,9 +43,9 @@ static unsigned int process_face_corner(
     if (n_idx < 0) n_idx = static_cast<long>(temp_normals.size()) + n_idx + 1;
 
     // Safety check indices before access
-    if (p_idx <= 0 || p_idx > temp_positions.size()) throw std::runtime_error("Invalid position index in OBJ file.");
-    if (t_idx != 0 && (t_idx <= 0 || t_idx > temp_uvs.size())) throw std::runtime_error("Invalid texture coordinate index in OBJ file.");
-    if (n_idx != 0 && (n_idx <= 0 || n_idx > temp_normals.size())) throw std::runtime_error("Invalid normal index in OBJ file.");
+    if (p_idx <= 0 || static_cast<size_t>(p_idx) > temp_positions.size()) throw std::runtime_error("Invalid position index in OBJ file.");
+    if (t_idx != 0 && (t_idx <= 0 || static_cast<size_t>(t_idx) > temp_uvs.size())) throw std::runtime_error("Invalid texture coordinate index in OBJ file.");
+    if (n_idx != 0 && (n_idx <= 0 || static_cast<size_t>(n_idx) > temp_normals.size())) throw std::runtime_error("Invalid normal index in OBJ file.");
 
     VertexKey key = std::make_tuple(p_idx, t_idx, n_idx);
     auto it = vertexIndexMap.find(key);

@@ -17,7 +17,6 @@
 #include "ECS/SystemManager.h"
 #include "Events/Event.h"
 #include "Events/EventBus.h"
-
 // Forward declarations for Systems
 namespace ECS {
     class PhysicsSystem;
@@ -25,6 +24,7 @@ namespace ECS {
     class MovementSystem;
     class PlayerMovementSystem;
     class CameraSystem;
+    class InputSystem;
 }
 class HealthSystem;
 class WeaponSystem;
@@ -71,13 +71,14 @@ private:
     bool SetupCamera(Camera& outCamera, DirectX::XMMATRIX& outView, DirectX::XMMATRIX& outProj);
     void RenderUI(Renderer* renderer, UIRenderer* uiRenderer, bool showDebugCollision);
 
-public:
     // Non-owning pointers
     AssetManager* m_assetManager;
     Graphics* m_graphics;
     Input* m_input;
     EventBus* m_eventBus;
+    
     // Cached system pointers for direct access
+    ECS::InputSystem* m_inputSystem = nullptr;
     ECS::PhysicsSystem* m_ecsPhysicsSystem = nullptr;
     ECS::RenderSystem* m_ecsRenderSystem = nullptr;
     ECS::MovementSystem* m_ecsMovementSystem = nullptr;

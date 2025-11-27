@@ -118,6 +118,8 @@ void SceneLoader::LoadScene(
         // Parse PlayerController
         if (components.HasField("playerController")) {
             builder.With(ParsePlayerController(components.GetField("playerController")));
+            // Auto-add InputComponent for player
+            builder.With(ECS::InputComponent{});
         }
 
         // Parse Camera
@@ -217,6 +219,8 @@ ECS::Entity SceneLoader::LoadPrefab(
     // Parse PlayerController
     if (components.HasField("playerController")) {
         builder.With(ParsePlayerController(components.GetField("playerController")));
+        // Auto-add InputComponent for player
+        builder.With(ECS::InputComponent{});
     }
 
     // Parse Camera

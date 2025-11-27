@@ -10,41 +10,36 @@
 #include <algorithm> // For std::max
 
 void WeaponSystem::Update(float deltaTime) {
-    auto weaponArray = m_componentManager.GetComponentArray<ECS::WeaponComponent>();
+    // Query for entities with Weapon, Transform, and Input (Controlled entities)
+    auto entities = m_componentManager.QueryEntities<ECS::WeaponComponent, ECS::TransformComponent, ECS::InputComponent>();
     
-    for (size_t i = 0; i < weaponArray->GetSize(); ++i) {
-        ECS::Entity entity = weaponArray->GetEntityAtIndex(i);
-        ECS::WeaponComponent& weapon = weaponArray->GetData(entity);
+    for (ECS::Entity entity : entities) {
+        ECS::WeaponComponent& weapon = m_componentManager.GetComponent<ECS::WeaponComponent>(entity);
+        ECS::TransformComponent& transform = m_componentManager.GetComponent<ECS::TransformComponent>(entity);
+        ECS::InputComponent& input = m_componentManager.GetComponent<ECS::InputComponent>(entity);
 
         // Cooldown management
         if (weapon.timeSinceLastShot < weapon.fireRate) {
             weapon.timeSinceLastShot += deltaTime;
         }
 
-        // Check if this entity is controlled by player (has PlayerController)
-        // Only player weapons respond to input for now
-        if (m_componentManager.HasComponent<ECS::PlayerControllerComponent>(entity)) {
-            bool fireInput = m_input.IsActionDown(Action::Fire);
-            bool altFireInput = m_input.IsActionDown(Action::AltFire);
-            bool reloadInput = m_input.IsActionDown(Action::Reload);
+        // Input handling
+        bool fireInput = input.fire;
+        bool altFireInput = input.altFire;
+        bool reloadInput = input.reload;
 
-            if (reloadInput) {
-                weapon.currentAmmo = weapon.maxAmmo;
-                weapon.projectileAmmo = weapon.maxProjectileAmmo;
-            }
-            
-            if (weapon.timeSinceLastShot >= weapon.fireRate && weapon.currentAmmo > 0) {
-                if (m_componentManager.HasComponent<ECS::TransformComponent>(entity)) {
-                    ECS::TransformComponent& transform = m_componentManager.GetComponent<ECS::TransformComponent>(entity);
-                    
-                    if (fireInput) {
-                        FireWeapon(entity, weapon, transform);
-                    } else if (altFireInput && m_projectileMesh && m_projectileMaterial && weapon.projectileAmmo > 0) {
-                        FireProjectile(entity, transform);
-                        weapon.timeSinceLastShot = 0.0f;
-                        weapon.projectileAmmo--; 
-                    }
-                }
+        if (reloadInput) {
+            weapon.currentAmmo = weapon.maxAmmo;
+            weapon.projectileAmmo = weapon.maxProjectileAmmo;
+        }
+        
+        if (weapon.timeSinceLastShot >= weapon.fireRate && weapon.currentAmmo > 0) {
+            if (fireInput) {
+                FireWeapon(entity, weapon, transform);
+            } else if (altFireInput && m_projectileMesh && m_projectileMaterial && weapon.projectileAmmo > 0) {
+                FireProjectile(entity, transform);
+                weapon.timeSinceLastShot = 0.0f;
+                weapon.projectileAmmo--; 
             }
         }
     }
