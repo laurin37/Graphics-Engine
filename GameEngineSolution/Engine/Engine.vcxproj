@@ -22,15 +22,25 @@
     <ClInclude Include="include\ECS\ComponentManager.h" />
     <ClInclude Include="include\ECS\Components.h" />
     <ClInclude Include="include\ECS\Entity.h" />
+    <ClInclude Include="include\ECS\EntityBuilder.h" />
+    <ClInclude Include="include\ECS\EntityHandle.h" />
     <ClInclude Include="include\ECS\System.h" />
     <ClInclude Include="include\ECS\SystemManager.h" />
+    <ClInclude Include="include\ECS\SystemPhase.h" />
     <ClInclude Include="include\ECS\Systems\CameraSystem.h" />
     <ClInclude Include="include\ECS\Systems\ECSMovementSystem.h" />
     <ClInclude Include="include\ECS\Systems\ECSPhysicsSystem.h" />
     <ClInclude Include="include\ECS\Systems\ECSRenderSystem.h" />
+    <ClInclude Include="include\ECS\Systems\InputSystem.h" />
+    <ClInclude Include="include\Events\ApplicationEvents.h" />
+    <ClInclude Include="include\Events\ECSEvents.h" />
+    <ClInclude Include="include\Events\Event.h" />
+    <ClInclude Include="include\Events\EventBus.h" />
+    <ClInclude Include="include\Events\InputEvents.h" />
     <ClInclude Include="include\Input\Input.h" />
     <ClInclude Include="include\Physics\Collision.h" />
     <ClInclude Include="include\Physics\PhysicsConstants.h" />
+    <ClInclude Include="include\Physics\SpatialGrid.h" />
     <ClInclude Include="include\Platform\Window.h" />
     <ClInclude Include="include\Renderer\BloomEffect.h" />
     <ClInclude Include="include\Renderer\Camera.h" />
@@ -58,11 +68,14 @@
     <ClInclude Include="include\Utils\Transform.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\ECS\ComponentManager.cpp" />
     <ClCompile Include="src\ECS\Systems\CameraSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\ECSMovementSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\ECSPhysicsSystem.cpp" />
     <ClCompile Include="src\ECS\Systems\ECSRenderSystem.cpp" />
+    <ClCompile Include="src\ECS\Systems\InputSystem.cpp" />
     <ClCompile Include="src\Input\Input.cpp" />
+    <ClCompile Include="src\Physics\SpatialGrid.cpp" />
     <ClCompile Include="src\Platform\Window.cpp" />
     <ClCompile Include="src\Renderer\BloomEffect.cpp" />
     <ClCompile Include="src\Renderer\Camera.cpp" />
