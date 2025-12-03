@@ -42,10 +42,23 @@ public:
     void EnableUIState();
     void DisableUIState();
 
+    // Batch Rendering
+    void BeginBatch();
+    void Flush();
+
 private:
     void Initialize();
 
     Graphics* m_graphics; // Raw pointer, lifetime managed by Game class
+
+    struct Batch
+    {
+        std::vector<SpriteVertex> vertices;
+        ID3D11ShaderResourceView* texture = nullptr;
+    };
+
+    Batch m_currentBatch;
+    static const size_t MAX_BATCH_SIZE = 2048;
 
     // UI Objects
     Microsoft::WRL::ComPtr<ID3D11VertexShader> m_uiVS;

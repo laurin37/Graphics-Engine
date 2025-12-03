@@ -73,7 +73,7 @@ void UIRenderer::Initialize()
 
     D3D11_BUFFER_DESC uiVBD = {};
     uiVBD.Usage = D3D11_USAGE_DYNAMIC;
-    uiVBD.ByteWidth = sizeof(SpriteVertex) * 256 * 6; // Max 256 sprites per draw call
+    uiVBD.ByteWidth = sizeof(SpriteVertex) * MAX_BATCH_SIZE * 6; // Use constant
     uiVBD.BindFlags = D3D11_BIND_VERTEX_BUFFER;
     uiVBD.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
     ThrowIfFailed(device->CreateBuffer(&uiVBD, nullptr, &m_uiVertexBuffer));
@@ -126,27 +126,43 @@ void UIRenderer::EnableUIState()
     cbUI.padding = DirectX::XMFLOAT2(0, 0);
     context->UpdateSubresource(m_uiConstantBuffer.Get(), 0, nullptr, &cbUI, 0, 0);
     context->VSSetConstantBuffers(0, 1, m_uiConstantBuffer.GetAddressOf());
+    
+    BeginBatch();
 }
 
 void UIRenderer::DisableUIState()
 {
+    Flush(); // Draw any remaining sprites
     auto context = m_graphics->GetContext();
     context->OMSetBlendState(nullptr, nullptr, 0xffffffff);
     context->OMSetDepthStencilState(nullptr, 0);
     context->RSSetState(nullptr);
 }
 
-void UIRenderer::DrawSprite(const SpriteVertex* vertices, size_t count, ID3D11ShaderResourceView* texture)
+void UIRenderer::BeginBatch()
 {
-    if (count == 0) return;
+    m_currentBatch.vertices.clear();
+    m_currentBatch.texture = nullptr;
+}
+
+void UIRenderer::Flush()
+{
+    if (m_currentBatch.vertices.empty() || !m_currentBatch.texture)
+    {
+        return;
+    }
 
     auto context = m_graphics->GetContext();
 
+    // Resize buffer if needed (simple dynamic buffer strategy)
+    // For now, we assume MAX_BATCH_SIZE is enough or we flush when full
+    
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     HRESULT hr = context->Map(m_uiVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-    if (FAILED(hr)) return; // Should probably throw here
+    if (FAILED(hr)) return;
 
-    memcpy(mappedResource.pData, vertices, sizeof(SpriteVertex) * count);
+    size_t vertexCount = m_currentBatch.vertices.size();
+    memcpy(mappedResource.pData, m_currentBatch.vertices.data(), sizeof(SpriteVertex) * vertexCount);
     context->Unmap(m_uiVertexBuffer.Get(), 0);
 
     UINT stride = sizeof(SpriteVertex);
@@ -157,10 +173,35 @@ void UIRenderer::DrawSprite(const SpriteVertex* vertices, size_t count, ID3D11Sh
 
     context->VSSetShader(m_uiVS.Get(), nullptr, 0);
     context->PSSetShader(m_uiPS.Get(), nullptr, 0);
-    context->PSSetShaderResources(0, 1, &texture);
+    context->PSSetShaderResources(0, 1, &m_currentBatch.texture);
     context->PSSetSamplers(0, 1, m_uiSamplerState.GetAddressOf());
 
-    context->Draw(static_cast<UINT>(count), 0);
+    context->Draw(static_cast<UINT>(vertexCount), 0);
+
+    m_currentBatch.vertices.clear();
+    // Keep texture for next batch potentially
+}
+
+void UIRenderer::DrawSprite(const SpriteVertex* vertices, size_t count, ID3D11ShaderResourceView* texture)
+{
+    if (count == 0) return;
+
+    // If texture changes, flush
+    if (m_currentBatch.texture != texture)
+    {
+        Flush();
+        m_currentBatch.texture = texture;
+    }
+
+    // If batch is full, flush
+    if (m_currentBatch.vertices.size() + count > MAX_BATCH_SIZE * 6)
+    {
+        Flush();
+        m_currentBatch.texture = texture; // Re-set texture after flush
+    }
+
+    // Append vertices
+    m_currentBatch.vertices.insert(m_currentBatch.vertices.end(), vertices, vertices + count);
 }
 
 void UIRenderer::DrawString(const SimpleFont& font, const std::string& text, float x, float y, float size, const float color[4])

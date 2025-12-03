@@ -113,12 +113,27 @@ bool ImmediateGUI::Button(const std::string& text)
     float h = ELEMENT_HEIGHT - 5.0f;
     
     // Handle SameLine (simplified)
+    // Handle SameLine
     if (m_state.sameLine)
     {
-        // TODO: Implement proper layout calculation
-        // For now, just reset sameLine
+        x = m_state.cursorX + PADDING; // Add padding from previous element
+        y = m_state.cursorY - ELEMENT_HEIGHT; // Stay on same line (undo Y advance)
+        w = (m_state.windowWidth - (3 * PADDING)) * 0.5f; // Half width for now (simple 2-column support)
+        
+        // Update cursor X for next element (if we supported >2 columns)
+        // m_state.cursorX = x + w; 
+        
         m_state.sameLine = false;
     }
+    else
+    {
+        // Reset X to start of line
+        x = m_state.windowX + PADDING;
+    }
+
+    // Update state cursor for drawing
+    m_state.cursorX = x;
+    m_state.cursorY = y;
 
     // Check interaction
     if (RegionHit(x, y, w, h))
@@ -153,16 +168,23 @@ bool ImmediateGUI::Button(const std::string& text)
     // Render Button Text
     if (m_font)
     {
-        // Center text (approximate)
-        float textWidth = text.length() * 10.0f; // Hacky width estimation
-        float textX = x + (w - textWidth) * 0.5f;
+        // Center text using MeasureString
+        DirectX::XMFLOAT2 textSize = m_font->MeasureString(text, 0.4f);
+        float textX = x + (w - textSize.x) * 0.5f;
+        float textY = y + (h - textSize.y) * 0.5f; // Center vertically too
+        
         if (textX < x) textX = x;
         
-        m_uiRenderer->DrawString(*m_font, text, x + PADDING, y + 5.0f, 0.4f, TEXT_COLOR);
+        m_uiRenderer->DrawString(*m_font, text, textX, textY, 0.4f, TEXT_COLOR);
     }
 
     // Advance cursor
-    m_state.cursorY += ELEMENT_HEIGHT;
+    if (!m_state.sameLine) {
+        m_state.cursorY += ELEMENT_HEIGHT;
+        m_state.cursorX = m_state.windowX + PADDING; // Reset X
+    } else {
+        m_state.cursorX += w + PADDING;
+    }
 
     // Click logic
     if (m_state.mouseDown == false && m_state.hotItem == id && m_state.activeItem == id)

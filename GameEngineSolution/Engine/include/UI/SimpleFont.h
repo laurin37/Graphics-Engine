@@ -27,6 +27,7 @@ public:
     void Initialize(Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> fontTexture, const std::vector<Glyph>& glyphs = {});
     
     std::vector<SpriteVertex> GenerateVerticesForString(const std::string& text, float x, float y, float size, const float color[4]) const;
+    DirectX::XMFLOAT2 MeasureString(const std::string& text, float size) const;
 
     ID3D11ShaderResourceView* GetTexture() const;
 

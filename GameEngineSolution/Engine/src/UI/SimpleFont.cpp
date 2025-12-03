@@ -115,3 +115,42 @@ std::vector<SpriteVertex> SimpleFont::GenerateVerticesForString(const std::strin
 
     return vertices;
 }
+
+DirectX::XMFLOAT2 SimpleFont::MeasureString(const std::string& text, float size) const
+{
+    float width = 0.0f;
+    float height = size; // Base height
+
+    // Legacy monospace fallback
+    const float monoCharStep = size * 0.6f;
+
+    for (char c : text)
+    {
+        if (c == '\n')
+        {
+            // Multiline support not fully implemented in measure yet, just return max width of single line for now
+            continue; 
+        }
+
+        unsigned char uc = static_cast<unsigned char>(c);
+        float advance;
+
+        if (m_isMonospace)
+        {
+            advance = monoCharStep;
+        }
+        else
+        {
+            if (uc >= m_glyphs.size()) uc = '?';
+            if (uc >= m_glyphs.size()) continue;
+
+            const Glyph& g = m_glyphs[uc];
+            float scale = size / 64.0f;
+            advance = g.xAdvance * scale;
+        }
+
+        width += advance;
+    }
+
+    return { width, height };
+}
