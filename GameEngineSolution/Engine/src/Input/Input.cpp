@@ -14,7 +14,7 @@ Input::Input() : m_hwnd(nullptr)
     BindAction(Action::MoveRight, 'D');
     BindAction(Action::Jump, VK_SPACE);
     BindAction(Action::Fire, VK_LBUTTON);
-    BindAction(Action::AltFire, VK_RBUTTON);
+    BindAction(Action::AltFire, VK_MBUTTON);
     BindAction(Action::Reload, 'R');
     BindAction(Action::Quit, VK_ESCAPE);
 }
